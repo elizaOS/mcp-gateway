@@ -1,0 +1,36 @@
+# Multi-server configuration for testing multiple server connections
+name: "E2E Multi-Server Test Gateway"
+version: "1.0.0"
+description: "Configuration with multiple servers for comprehensive testing"
+
+servers:
+  - name: "user-review-1"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review1"
+    enabled: true
+    timeout: 30000
+    retryAttempts: 2
+
+  - name: "user-review-2"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review2"
+    enabled: true
+    timeout: 30000
+    retryAttempts: 2
+
+  # Test legacy format alongside new format
+  - name: "legacy-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "legacy"
+    enabled: true
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 10
+  healthCheckInterval: 30000

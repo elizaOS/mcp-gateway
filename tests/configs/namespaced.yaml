@@ -1,0 +1,21 @@
+# Namespaced configuration for testing namespace functionality
+name: "E2E Namespaced Test Gateway"
+version: "1.0.0"
+description: "Configuration with namespaced servers for testing"
+
+servers:
+  - name: "user-review"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review"
+    enabled: true
+    timeout: 30000
+    retryAttempts: 2
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 5
+  healthCheckInterval: 30000

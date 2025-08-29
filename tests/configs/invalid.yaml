@@ -1,0 +1,19 @@
+# Invalid configuration for testing error handling
+name: "Invalid Test Gateway"
+version: "1.0.0"
+description: "Invalid configuration that should be rejected"
+
+servers:
+  # This server has no command or transport - should be invalid
+  - name: "broken-server"
+    enabled: true
+    
+  # This server has duplicate name with above - should be invalid
+  - name: "broken-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    enabled: true
+
+settings:
+  enableToolConflictResolution: true
+  logLevel: "info"

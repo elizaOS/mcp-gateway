@@ -1,0 +1,293 @@
+# Eliza MCP Gateway
+
+An MCP (Model Context Protocol) gateway that connects multiple MCP servers into a unified interface, providing seamless access to diverse MCP capabilities through a single connection.
+
+## 🚀 Features
+
+- **🔄 Multi-Server Gateway**: Connect to multiple MCP servers simultaneously
+- **🏷️ Namespace Support**: Automatic namespacing to prevent tool/resource conflicts
+- **📋 Configuration-Based**: YAML/JSON configuration files for easy server management
+- **💪 Health Monitoring**: Automatic health checks and connection management
+- **🛡️ Conflict Resolution**: Built-in conflict resolution for tools, resources, and prompts
+- **⚡ Real-time Updates**: Dynamic capability discovery and registry updates
+- **🚀 Multi-Transport Support**: STDIO, HTTP, SSE, and WebSocket transports
+
+## 📦 Installation
+
+```bash
+npm install -g mcp-gateway
+```
+
+Or run directly with npx:
+```bash
+npx mcp-gateway --config=config.yaml
+```
+
+## 🔧 Configuration
+
+### Example YAML Configuration
+
+```yaml
+name: "Development MCP Gateway"
+version: "1.0.0"
+description: "Gateway connecting Context7 docs and User Review MCP for development workflow"
+
+servers:
+  # Context7 MCP Server - Up-to-date code documentation
+  - name: "context7"
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"]
+    namespace: "docs"
+    enabled: true
+    timeout: 30000
+    retryAttempts: 3
+
+  # User Review MCP - Development feedback
+  - name: "user-review"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review"
+    enabled: true
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 10
+  healthCheckInterval: 60000
+```
+
+### Example JSON Configuration
+
+```json
+{
+  "name": "Development MCP Gateway",
+  "servers": [
+    {
+      "name": "context7",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"],
+      "namespace": "docs",
+      "enabled": true
+    },
+    {
+      "name": "user-review", 
+      "command": "npx",
+      "args": ["-y", "user-review-mcp"],
+      "namespace": "review",
+      "enabled": true
+    }
+  ],
+  "settings": {
+    "enableToolConflictResolution": true,
+    "logLevel": "info"
+  }
+}
+```
+
+## 🎯 Usage
+
+### Command Line
+
+```bash
+# Using configuration file
+mcp-gateway --config=config.yaml
+
+# Using environment variables
+MCP_SERVERS="context7:npx:@upstash/context7-mcp;user-review:npx:user-review-mcp" mcp-gateway
+```
+
+### Claude Desktop Configuration
+
+Add to your Claude Desktop config (`~/Library/Application Support/Claude/claude_desktop_config.json`):
+
+```json
+{
+  "mcpServers": {
+    "eliza-gateway": {
+      "command": "npx",
+      "args": ["-y", "mcp-gateway", "--config", "/path/to/your/config.yaml"]
+    }
+  }
+}
+```
+
+### Environment Variables
+
+- `MCP_GATEWAY_NAME` - Name of the gateway (default: "Eliza MCP Gateway")
+- `MCP_LOG_LEVEL` - Log level: error, warn, info, debug (default: info)
+- `MCP_SERVERS` - Semicolon-separated server specs (name:command:args)
+- `MCP_ENABLE_TOOL_CONFLICT_RESOLUTION` - Enable conflict resolution (default: true)
+
+## 🚀 Transport Support
+
+### **Fully Supported Transports:**
+
+- **📟 STDIO Transport** - Local MCP servers via stdin/stdout
+  - Perfect for command-line MCP servers, Claude Desktop, Cursor
+  - Configuration: `command`, `args`, `env`, `cwd`
+
+- **🌐 HTTP Transport** - Remote MCP servers via HTTP/HTTPS
+  - For web-based MCP servers and API integrations
+  - Configuration: `url`, `apiKey`, `headers`
+
+- **📡 SSE Transport** - Server-Sent Events for streaming
+  - Real-time streaming capabilities
+  - Configuration: `sseUrl`, `postUrl`, `apiKey`, `headers`
+
+- **🔌 WebSocket Transport** - Real-time bidirectional communication
+  - Low-latency, persistent connections
+  - Configuration: `url`, `apiKey`, `headers`
+
+```yaml
+# Modern transport configuration
+servers:
+  # Local STDIO server
+  - name: "local-server"
+    transport:
+      type: "stdio"
+      command: "npx"
+      args: ["-y", "user-review-mcp"]
+    
+  # Remote HTTP server
+  - name: "remote-server"
+    transport:
+      type: "http"
+      url: "https://mcp.example.com/api"
+      apiKey: "YOUR_API_KEY"
+    
+  # Legacy format (still supported)
+  - name: "legacy-server"
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp"]
+```
+
+### **Working Examples:**
+
+See the `examples/` directory for complete, tested configurations:
+- [`examples/mixed-transports.yaml`](examples/mixed-transports.yaml) - STDIO + HTTP combination
+- [`examples/http-remote.yaml`](examples/http-remote.yaml) - Pure HTTP setup
+- [`examples/future-multi-transport.yaml`](examples/future-multi-transport.yaml) - All 4 transport types
+- [`examples/config.yaml`](examples/config.yaml) - Basic STDIO configuration
+
+## 🧪 Testing
+
+The gateway includes a comprehensive End-to-End test suite that validates all functionality across different configurations and transport types.
+
+### Quick Testing (Recommended)
+```bash
+# Run essential tests (fastest)
+npm run test:quick
+
+# Or use the test runner script
+./tests/test-runner.sh quick
+```
+
+### Full Test Suite
+```bash
+# Run comprehensive tests including MCP client communication
+npm run test
+
+# Or use the test runner script  
+./tests/test-runner.sh full
+```
+
+### Test Specific Configurations
+```bash
+# Test a specific configuration file
+./tests/test-runner.sh config basic.yaml
+./tests/test-runner.sh config multi-server.yaml
+
+# Available test configs:
+# - basic.yaml - Single server, STDIO transport
+# - basic.json - Same as basic.yaml but JSON format  
+# - namespaced.yaml - Single server with namespace
+# - multi-server.yaml - Multiple servers, different namespaces
+# - invalid.yaml - Invalid config for error testing
+# - failing-server.yaml - Server connection failure testing
+```
+
+### Interactive Testing
+```bash
+# Use MCP Inspector for interactive testing
+./tests/test-runner.sh manual
+./tests/test-runner.sh manual multi-server.yaml
+
+# Manual testing with specific config
+npx @modelcontextprotocol/inspector node build/index.js --config=examples/mixed-transports.yaml
+```
+
+### Test Coverage
+The E2E test suite validates:
+- ✅ **Configuration Loading**: YAML, JSON, and environment variables
+- ✅ **All Transport Types**: STDIO, HTTP, SSE, WebSocket
+- ✅ **Multi-Server Support**: Multiple servers with namespace handling
+- ✅ **Error Handling**: Invalid configs, connection failures, graceful degradation
+- ✅ **Tool Execution**: MCP protocol communication and tool calls
+- ✅ **Process Management**: Startup, shutdown, cleanup
+
+### CI/CD Integration
+```bash
+# For continuous integration pipelines
+npm run test:quick  # Fast, essential tests only
+npm run test        # Full test suite (slower but comprehensive)
+```
+
+## 📊 Example Output
+
+When running with multiple servers, you'll see:
+
+```
+[INFO] Starting Eliza MCP Gateway Server: Development MCP Gateway v1.0.0
+[INFO] Initializing 2 servers...
+[INFO] Successfully initialized server context7
+[INFO] Successfully initialized server user-review  
+[INFO] Initialized 2/2 servers successfully
+[INFO] Registry refreshed: 3 tools, 0 resources, 0 prompts
+[INFO] === Eliza MCP Gateway Status ===
+[INFO] Server Connections: 2/2 active
+[INFO] Tools by Server:
+[INFO]   - context7: 2 tools
+[INFO]   - user-review: 1 tools
+```
+
+Available tools with namespacing:
+- `docs:resolve-library-id` (Context7)
+- `docs:get-library-docs` (Context7) 
+- `review:get-user-review` (User Review MCP)
+
+## 🏗️ Architecture
+
+```mermaid
+graph TB
+    Client[MCP Client] --> Gateway[Eliza MCP Gateway]
+    Gateway --> Registry[Unified Registry]
+    Gateway --> Manager[Server Manager]
+    
+    Manager --> Server1[Context7 MCP]
+    Manager --> Server2[User Review MCP]
+    Manager --> Server3[Other MCP Servers]
+    
+    Registry --> Tools[Aggregated Tools]
+    Registry --> Resources[Aggregated Resources]  
+    Registry --> Prompts[Aggregated Prompts]
+```
+
+## 🤝 Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests
+5. Submit a pull request
+
+## 📄 License
+
+MIT License - see LICENSE file for details.
+
+## 🙏 Acknowledgments
+
+- Built with the [Model Context Protocol](https://modelcontextprotocol.io)
+- Tested with [Context7 MCP Server](https://github.com/upstash/context7)
+- Tested with [User Review MCP](https://www.npmjs.com/package/user-review-mcp)

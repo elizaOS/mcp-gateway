@@ -1,0 +1,45 @@
+# MCP Aggregator Configuration Example (YAML)
+name: "Development MCP Aggregator"
+version: "1.0.0" 
+description: "Aggregates Context7 docs and User Review MCP for development workflow"
+
+# List of MCP servers to aggregate
+servers:
+  # Context7 MCP Server - Up-to-date code documentation
+  - name: "context7"
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_CONTEXT7_API_KEY"]
+    namespace: "docs"
+    enabled: true
+    timeout: 30000
+    retryAttempts: 3
+    env:
+      CONTEXT7_API_KEY: "YOUR_CONTEXT7_API_KEY"
+  
+  # User Review MCP - Simulates harsh user reviews for disciplined development
+  - name: "user-review"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review"
+    enabled: true
+    timeout: 30000
+    retryAttempts: 3
+    
+  # Filesystem server example (commented out - replace with actual path)
+  # - name: "filesystem"
+  #   command: "npx"
+  #   args: ["-y", "@modelcontextprotocol/server-filesystem", "/Users/studio/Documents"]
+  #   namespace: "fs"
+  #   enabled: false
+
+# Aggregator settings
+settings:
+  # Conflict resolution
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  
+  # Logging and monitoring
+  logLevel: "info"  # error, warn, info, debug
+  maxConcurrentConnections: 10
+  healthCheckInterval: 60000  # 60 seconds

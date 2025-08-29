@@ -1,0 +1,31 @@
+# Configuration with a server that will fail to connect
+name: "E2E Failing Server Test Gateway"
+version: "1.0.0"
+description: "Configuration with servers that should fail to connect"
+
+servers:
+  # This server should work
+  - name: "working-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "working"
+    enabled: true
+    timeout: 30000
+    retryAttempts: 1
+
+  # This server should fail to connect (non-existent command)
+  - name: "failing-server"
+    command: "this-command-does-not-exist"
+    args: ["--some-arg"]
+    namespace: "failing"
+    enabled: true
+    timeout: 5000
+    retryAttempts: 1
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 5
+  healthCheckInterval: 30000

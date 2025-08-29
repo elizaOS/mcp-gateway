@@ -1,0 +1,37 @@
+# HTTP Transport Example - Connect to remote MCP servers
+name: "HTTP Remote MCP Aggregator"
+version: "1.0.0" 
+description: "Connects to remote MCP servers via HTTP"
+
+servers:
+  # Context7 via HTTP (remote server)
+  - name: "context7-remote"
+    transport:
+      type: "http"
+      url: "https://mcp.context7.com/mcp"
+      apiKey: "YOUR_CONTEXT7_API_KEY"
+      headers:
+        User-Agent: "mcp-aggregator/1.0.0"
+        Accept: "application/json"
+    namespace: "docs"
+    enabled: true
+    timeout: 45000
+    retryAttempts: 2
+
+  # Custom HTTP MCP server
+  - name: "custom-api"
+    transport:
+      type: "http" 
+      url: "https://api.yourcompany.com/mcp"
+      apiKey: "YOUR_CUSTOM_API_KEY"
+      headers:
+        Authorization: "Bearer YOUR_CUSTOM_API_KEY"
+        Content-Type: "application/json"
+    namespace: "api"
+    enabled: false  # Enable when you have your custom server
+
+settings:
+  enableToolConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 10
+  healthCheckInterval: 30000  # More frequent for remote servers

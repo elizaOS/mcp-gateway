@@ -1,0 +1,20 @@
+# Basic test configuration for E2E testing
+name: "E2E Test Gateway"
+version: "1.0.0"
+description: "Basic configuration for end-to-end testing"
+
+servers:
+  - name: "user-review"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    enabled: true
+    timeout: 30000
+    retryAttempts: 2
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 5
+  healthCheckInterval: 30000

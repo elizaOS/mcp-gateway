@@ -1,0 +1,51 @@
+# Mixed Transport Configuration - Best of both worlds
+name: "Production MCP Aggregator"
+version: "1.0.0"
+description: "Production-ready configuration mixing local and remote MCP servers"
+
+servers:
+  # Local STDIO servers for fast, reliable tools
+  - name: "user-review"
+    transport:
+      type: "stdio"
+      command: "npx"
+      args: ["-y", "user-review-mcp"]
+    namespace: "review"
+    enabled: true
+
+  # Remote HTTP servers for external APIs  
+  - name: "context7"
+    transport:
+      type: "http"
+      url: "https://mcp.context7.com/mcp"
+      apiKey: "YOUR_CONTEXT7_API_KEY"
+    namespace: "docs"
+    enabled: true
+
+  # Local filesystem access
+  - name: "filesystem"
+    transport:
+      type: "stdio"
+      command: "npx"
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "/Users/studio/Documents"]
+    namespace: "fs" 
+    enabled: false  # Enable with your preferred directory
+
+  # Remote database via HTTP
+  - name: "company-db"
+    transport:
+      type: "http"
+      url: "https://db-api.company.com/mcp"
+      apiKey: "YOUR_DB_API_KEY"
+      headers:
+        X-Company-Client: "mcp-aggregator"
+    namespace: "db"
+    enabled: false
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 15
+  healthCheckInterval: 60000

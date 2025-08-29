@@ -1,0 +1,36 @@
+{
+  "name": "Development MCP Aggregator",
+  "version": "1.0.0",
+  "description": "Aggregates Context7 docs and User Review MCP for development workflow",
+  "servers": [
+    {
+      "name": "context7",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_CONTEXT7_API_KEY"],
+      "namespace": "docs",
+      "enabled": true,
+      "timeout": 30000,
+      "retryAttempts": 3,
+      "env": {
+        "CONTEXT7_API_KEY": "YOUR_CONTEXT7_API_KEY"
+      }
+    },
+    {
+      "name": "user-review",
+      "command": "npx",
+      "args": ["-y", "user-review-mcp"],
+      "namespace": "review",
+      "enabled": true,
+      "timeout": 30000,
+      "retryAttempts": 3
+    }
+  ],
+  "settings": {
+    "enableToolConflictResolution": true,
+    "enableResourceConflictResolution": true,
+    "enablePromptConflictResolution": true,
+    "logLevel": "info",
+    "maxConcurrentConnections": 10,
+    "healthCheckInterval": 60000
+  }
+}

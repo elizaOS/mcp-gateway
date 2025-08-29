@@ -1,0 +1,33 @@
+# Simple test configuration for Cursor integration
+name: "Cursor Test Aggregator"
+version: "1.0.0"
+description: "Simple aggregator for testing Cursor integration"
+
+servers:
+  # User Review MCP - No API key needed
+  - name: "user-review"
+    transport:
+      type: "stdio"
+      command: "npx"
+      args: ["-y", "user-review-mcp"]
+    namespace: "review"
+    enabled: true
+    timeout: 30000
+
+  # Steam Review MCP - No API key needed  
+  - name: "steam-review"
+    transport:
+      type: "stdio"
+      command: "npx" 
+      args: ["-y", "@iflow-mcp/steam-review-mcp"]
+    namespace: "steam"
+    enabled: true
+    timeout: 30000
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 5
+  healthCheckInterval: 60000
