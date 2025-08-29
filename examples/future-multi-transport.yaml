@@ -1,0 +1,65 @@
+# Multi-transport configuration example - ALL TRANSPORTS NOW SUPPORTED!
+name: "Multi-Transport MCP Gateway"
+version: "1.0.0"
+description: "Demonstrates all supported MCP transport types"
+
+servers:
+  # STDIO Transport - Local MCP servers
+  - name: "user-review-stdio"
+    transport:
+      type: "stdio"
+      command: "npx"
+      args: ["-y", "user-review-mcp"]
+      env:
+        NODE_ENV: "production"
+    namespace: "review"
+    enabled: true
+
+  # HTTP Transport - Remote MCP servers  
+  - name: "context7-http"
+    transport:
+      type: "http" 
+      url: "https://mcp.context7.com/mcp"
+      apiKey: "YOUR_CONTEXT7_API_KEY"
+      headers:
+        User-Agent: "mcp-aggregator/1.0.0"
+    namespace: "docs"
+    enabled: true
+
+  # SSE Transport - Server-Sent Events for streaming
+  - name: "streaming-mcp"
+    transport:
+      type: "sse"
+      sseUrl: "https://stream.example.com/events"
+      postUrl: "https://stream.example.com/messages"
+      apiKey: "YOUR_SSE_API_KEY"
+      headers:
+        User-Agent: "mcp-aggregator/1.0.0"
+    namespace: "stream"
+    enabled: false  # Enable when you have a real SSE MCP server
+
+  # WebSocket Transport - Real-time bidirectional communication
+  - name: "websocket-mcp"
+    transport:
+      type: "websocket"
+      url: "wss://ws.example.com/mcp"
+      apiKey: "YOUR_WS_API_KEY"
+      headers:
+        User-Agent: "mcp-aggregator/1.0.0"
+    namespace: "ws"
+    enabled: false  # Enable when you have a real WebSocket MCP server
+
+  # Backward compatibility - legacy format still works
+  - name: "legacy-config"
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_API_KEY"]
+    namespace: "legacy"
+    enabled: false
+
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 20  # Increased for multiple transports
+  healthCheckInterval: 45000
