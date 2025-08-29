@@ -15,12 +15,12 @@ An MCP (Model Context Protocol) gateway that connects multiple MCP servers into 
 ## 📦 Installation
 
 ```bash
-npm install -g mcp-gateway
+npm install -g @elizaos/mcp-gateway
 ```
 
 Or run directly with npx:
 ```bash
-npx mcp-gateway --config=config.yaml
+npx @elizaos/mcp-gateway --config=config.yaml
 ```
 
 ## 🔧 Configuration
