@@ -8,7 +8,6 @@
     "build": "tsc",
     "start": "node build/index.js",
     "dev": "tsx src/index.ts",
-    "lint": "eslint src/",
     "type-check": "tsc --noEmit",
     "test": "npm run build && tsx tests/e2e-test.ts",
     "test:quick": "tsx tests/e2e-simple.ts"
@@ -31,7 +30,6 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "eslint": "^9.0.0",
     "tsx": "^4.19.1",
     "typescript": "^5.7.0"
   },
