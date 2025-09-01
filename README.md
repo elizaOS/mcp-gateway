@@ -11,6 +11,8 @@ An MCP (Model Context Protocol) gateway that connects multiple MCP servers into 
 - **🛡️ Conflict Resolution**: Built-in conflict resolution for tools, resources, and prompts
 - **⚡ Real-time Updates**: Dynamic capability discovery and registry updates
 - **🚀 Multi-Transport Support**: STDIO, HTTP, SSE, and WebSocket transports
+- **💰 Paywall Enforcement**: Inbound payment enforcement with per-item pricing
+- **🔐 x402 Integration**: Support for x402 payment protocol and outbound payments
 
 ## 📦 Installation
 
@@ -253,6 +255,171 @@ cp env.example .env
 - Never commit `.env` files or actual private keys to version control
 - Use environment variables or secure key management systems in production
 - For testing, generate test-only keys that don't hold real funds
+
+## 💰 Paywall Enforcement
+
+The MCP Gateway supports inbound paywall enforcement, allowing you to "paywall any server" regardless of the upstream server's transport. This feature enables per-request payment before the gateway forwards calls to upstream MCP servers.
+
+### Key Features
+
+- **Per-Server Enforcement**: Enable paywall for specific servers while keeping others free
+- **Granular Pricing**: Set different prices for tools, resources, and prompts
+- **Multiple Networks**: Support for Base and Base Sepolia networks
+- **Session Management**: Track authorized payments and balances per client session
+- **Policy Control**: Configure free listing vs. paid calls
+- **Special Tools**: Built-in tools for pricing discovery and payment authorization
+
+### Paywall Configuration
+
+Add a `paywall` section to any server configuration:
+
+```yaml
+servers:
+  premium-ai:
+    enabled: true
+    transport:
+      type: http
+      url: "https://api.premium-ai.com/mcp"
+    paywall:
+      enabled: true
+      wallet:
+        type: evm
+        network: base-sepolia
+        privateKeyEnv: PREMIUM_AI_WALLET_KEY
+      maxValueMicroUSDC: "500000"  # 0.50 USDC max per request
+      pricing:
+        defaultPriceMicroUSDC: "10000"  # 0.01 USDC default
+        perTool:
+          gpt4-analysis: "50000"      # 0.05 USDC
+          image-generation: "25000"   # 0.025 USDC
+          simple-query: "5000"        # 0.005 USDC
+        perResource:
+          "model://gpt-4": "100000"   # 0.10 USDC
+          "data://premium": "20000"   # 0.02 USDC
+        perPrompt:
+          expert-prompt: "15000"      # 0.015 USDC
+      policy:
+        freeList: true          # Allow listing tools/resources for free
+        requireForCalls: true   # Require payment for actual calls
+```
+
+### Pricing Resolution
+
+The gateway resolves pricing in the following order:
+1. **Per-item pricing** (tool/resource/prompt specific)
+2. **Default pricing** (if no specific price is set)
+3. **Free** (if no pricing is configured)
+
+### Environment Variables
+
+Set the private key for each paywall-enabled server:
+
+```bash
+# For the example above
+PREMIUM_AI_WALLET_KEY=0x1234567890abcdef...
+
+# Or use a shared key for multiple servers
+PAYWALL_PRIVATE_KEY=0x1234567890abcdef...
+```
+
+### Client Experience
+
+#### Unauthorized Calls
+
+When a client tries to call a paid tool without authorization, they receive an MCP error with payment instructions:
+
+```json
+{
+  "error": {
+    "code": -32603,
+    "message": "Payment required for tool 'gpt4-analysis': 50000 micro-USDC",
+    "data": {
+      "paymentRequired": true,
+      "kind": "tool",
+      "id": "gpt4-analysis",
+      "amountMicroUSDC": "50000",
+      "network": "base-sepolia",
+      "token": "USDC",
+      "recipient": "0x...",
+      "nonce": "1640995200000",
+      "howToPay": "https://docs.x402.org/how-to-pay",
+      "instructions": "This tool requires payment of 50000 micro-USDC ($0.050000). Use the 'gateway:paywall:authorize' tool with an x402 payment.",
+      "paywallTools": [
+        "gateway:paywall:get-pricing - Get pricing information",
+        "gateway:paywall:authorize - Authorize payment with x402 payment"
+      ]
+    }
+  }
+}
+```
+
+#### Special Paywall Tools
+
+The gateway automatically adds special tools when paywall is enabled:
+
+1. **`gateway:paywall:get-pricing`**: Returns pricing information for all paywall-enabled servers
+2. **`gateway:paywall:authorize`**: Accepts x402 payment to authorize future calls
+
+#### Payment Flow
+
+1. **Discovery**: Call `gateway:paywall:get-pricing` to see what costs what
+2. **Payment**: Use `gateway:paywall:authorize` with x402 payment data
+3. **Usage**: Make calls to paid tools/resources/prompts until balance is exhausted
+
+Example authorization:
+
+```javascript
+// Call the authorize tool with x402 payment
+await client.callTool({
+  name: 'gateway:paywall:authorize',
+  arguments: {
+    xPayment: 'x402-payment-envelope-here'
+  }
+});
+
+// Now you can call paid tools
+await client.callTool({
+  name: 'gpt4-analysis',
+  arguments: { query: 'Analyze this data...' }
+});
+```
+
+### HTTP/SSE Frontend (Optional)
+
+For HTTP-based clients, the gateway can expose REST endpoints:
+
+- **POST /pay**: Accept x402 payments and issue session tokens
+- **GET /pricing**: Return pricing information
+- **GET /health**: Gateway and paywall status
+- **POST /mcp/\***: MCP calls over HTTP (with proper authorization)
+
+HTTP clients receive standard 402 Payment Required responses with `X-Payment-Required` headers.
+
+### Testing Paywall
+
+Run paywall tests:
+
+```bash
+# Unit tests for paywall logic
+npm run test:paywall:unit
+
+# E2E tests for paywall flows  
+npm run test:paywall:e2e
+
+# Test with basic paywall config
+npm run test:paywall:basic
+
+# Test with advanced multi-server config
+npm run test:paywall:advanced
+```
+
+### Security Considerations
+
+- **Private Keys**: Store wallet private keys securely, never in code
+- **Network Choice**: Use testnets for development, mainnet for production
+- **Amount Limits**: Set reasonable `maxValueMicroUSDC` limits
+- **Session Expiry**: Sessions expire after 24 hours by default
+- **Payment Verification**: Production deployments should use robust x402 verification
 
 ## 📊 Example Output
 

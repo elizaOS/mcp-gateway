@@ -14,7 +14,11 @@
     "test:x402": "bun run build && bunx tsx tests/e2e-x402.ts",
     "test:x402:unit": "bun run build && bunx tsx tests/unit-x402.ts",
     "test:x402:context7": "bun run build && bunx tsx tests/integration-context7-x402.ts",
-    "test:x402:context7:simple": "bun run build && bunx tsx tests/integration-context7-x402-simple.ts"
+    "test:x402:context7:simple": "bun run build && bunx tsx tests/integration-context7-x402-simple.ts",
+    "test:paywall:unit": "bun run build && bunx tsx tests/unit-paywall.ts",
+    "test:paywall:e2e": "bun run build && bunx tsx tests/e2e-paywall.ts",
+    "test:paywall:basic": "bun run build && node build/index.js --config=tests/configs/paywall-basic.yaml",
+    "test:paywall:advanced": "bun run build && node build/index.js --config=tests/configs/paywall-advanced.yaml"
   },
   "keywords": [
     "mcp",

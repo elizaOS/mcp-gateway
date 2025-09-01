@@ -51,6 +51,69 @@ const X402MiddlewareSchema = z.object({
   maxValueMicroUSDC: z.string().optional().describe('Maximum payment per request in micro-USDC (default 100000 = $0.10)')
 });
 
+// Paywall enforcement configuration schemas (for inbound requests)
+const PaywallWalletSchema = z.object({
+  type: z.enum(['evm']).describe('Wallet type for paywall enforcement (only evm supported for now)'),
+  network: z.enum(['base', 'base-sepolia']).describe('Network for paywall enforcement'),
+  privateKeyEnv: z.string().describe('Environment variable name containing the private key for paywall enforcement')
+});
+
+const PaywallPricingSchema = z.object({
+  defaultPriceMicroUSDC: z.string().optional().describe('Default price in micro-USDC if no specific rule matches'),
+  perTool: z.record(z.string(), z.string()).optional().describe('Per-tool pricing: toolName -> micro-USDC string'),
+  perResource: z.record(z.string(), z.string()).optional().describe('Per-resource pricing: uri -> micro-USDC string'),
+  perPrompt: z.record(z.string(), z.string()).optional().describe('Per-prompt pricing: promptName -> micro-USDC string')
+}).refine((data) => {
+  // Validate that all pricing values are valid non-negative bigint strings
+  const validatePriceString = (priceStr: string): boolean => {
+    try {
+      const price = BigInt(priceStr);
+      return price >= 0n;
+    } catch {
+      return false;
+    }
+  };
+
+  if (data.defaultPriceMicroUSDC && !validatePriceString(data.defaultPriceMicroUSDC)) {
+    return false;
+  }
+
+  if (data.perTool) {
+    for (const price of Object.values(data.perTool)) {
+      if (!validatePriceString(price)) return false;
+    }
+  }
+
+  if (data.perResource) {
+    for (const price of Object.values(data.perResource)) {
+      if (!validatePriceString(price)) return false;
+    }
+  }
+
+  if (data.perPrompt) {
+    for (const price of Object.values(data.perPrompt)) {
+      if (!validatePriceString(price)) return false;
+    }
+  }
+
+  return true;
+}, {
+  message: 'All pricing values must be valid non-negative numeric strings'
+});
+
+const PaywallPolicySchema = z.object({
+  freeList: z.boolean().default(true).describe('Allow listing tools/resources/prompts without payment'),
+  requireForCalls: z.boolean().default(true).describe('Require payment for actual tool calls, resource reads, and prompt gets')
+});
+
+const PaywallConfigSchema = z.object({
+  enabled: z.boolean().default(false).describe('Enable paywall enforcement for this server'),
+  wallet: PaywallWalletSchema.describe('Wallet configuration for paywall enforcement'),
+  maxValueMicroUSDC: z.string().optional().describe('Maximum payment per request in micro-USDC (default 100000 = $0.10)'),
+  pricing: PaywallPricingSchema.describe('Pricing configuration for tools, resources, and prompts'),
+  policy: PaywallPolicySchema.optional().default({}).describe('Policy configuration for paywall enforcement')
+});
+
 // Configuration schema for individual MCP servers
 export const McpServerConfigSchema = z.object({
   name: z.string().describe('Unique name for this server'),
@@ -66,7 +129,9 @@ export const McpServerConfigSchema = z.object({
   retryAttempts: z.number().default(3).describe('Number of retry attempts on failure'),
   retryDelay: z.number().default(1000).describe('Delay between retries in milliseconds'),
   // x402 middleware can be enabled as a boolean or configured with an object
-  x402Middleware: z.union([z.boolean(), X402MiddlewareSchema]).optional().describe('Enable and configure x402 payment middleware')
+  x402Middleware: z.union([z.boolean(), X402MiddlewareSchema]).optional().describe('Enable and configure x402 payment middleware'),
+  // Paywall enforcement for inbound requests (independent of x402Middleware which is for outbound)
+  paywall: PaywallConfigSchema.optional().describe('Enable and configure paywall enforcement for incoming client requests')
 });
 
 // Main gateway configuration
@@ -134,4 +199,30 @@ export interface AggregatedPrompt {
     description?: string;
     required?: boolean;
   }> | undefined;
+}
+
+// Paywall-related runtime types
+export interface VerifiedPaymentReceipt {
+  paymentId: string;
+  amount: bigint;
+  network: string;
+  recipient: string;
+  timestamp: Date;
+  txHash?: string;
+}
+
+export interface PaywallSession {
+  sessionId: string;
+  authorizedAmount: bigint;
+  remainingBalance: bigint;
+  receipts: VerifiedPaymentReceipt[];
+  expiresAt: Date;
+}
+
+export interface PaywallStats {
+  totalPayments: number;
+  totalAmount: bigint;
+  activeSessions: number;
+  paymentsToday: number;
+  averagePayment: bigint;
 }

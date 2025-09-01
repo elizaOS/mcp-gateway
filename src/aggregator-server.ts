@@ -12,7 +12,8 @@ import {
 
 import { ServerManager } from './server-manager.js';
 import { GatewayRegistry } from './registry.js';
-import { type GatewayConfig } from './types.js';
+import { type GatewayConfig, type McpServerConfig } from './types.js';
+import { PaywallGuard } from './paywall-guard.js';
 
 export class GatewayServer {
   private server: Server;
@@ -21,12 +22,16 @@ export class GatewayServer {
   private config: GatewayConfig;
   private logger: Console;
   private healthCheckInterval?: NodeJS.Timeout;
+  private paywallGuard: PaywallGuard;
+  private currentSessionId: string;
 
   constructor(config: GatewayConfig, logger: Console = console) {
     this.config = config;
     this.logger = logger;
     this.serverManager = new ServerManager(logger);
     this.registry = new GatewayRegistry(config, logger);
+    this.paywallGuard = new PaywallGuard(logger);
+    this.currentSessionId = PaywallGuard.generateSessionId('gateway-session');
 
     // Initialize MCP server
     this.server = new Server(
@@ -59,12 +64,21 @@ export class GatewayServer {
         inputSchema: tool.inputSchema
       }));
 
+      // Add special paywall tools if any server has paywall enabled
+      const paywallTools = this.getPaywallTools();
+      tools.push(...paywallTools);
+
       return { tools };
     });
 
     // Call tool handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
+      
+      // Handle special paywall tools
+      if (name.startsWith('gateway:paywall:')) {
+        return await this.handlePaywallTool(name, args || {});
+      }
       
       const tool = this.registry.findTool(name);
       if (!tool) {
@@ -80,6 +94,21 @@ export class GatewayServer {
           ErrorCode.InternalError,
           `Server '${tool.serverId}' is not connected`
         );
+      }
+
+      // Check paywall enforcement
+      const serverConfig = this.config.servers.find(s => s.name === tool.serverId);
+      if (serverConfig) {
+        const requiredPrice = PaywallGuard.getRequiredPriceMicroUSDC('tool', tool.originalName, serverConfig);
+        if (requiredPrice !== null && requiredPrice > 0n) {
+          const isAuthorized = await this.paywallGuard.isSessionAuthorized(this.currentSessionId, requiredPrice);
+          if (!isAuthorized) {
+            throw this.createPaymentRequiredError('tool', tool.originalName, requiredPrice, serverConfig);
+          }
+          
+          // Deduct the amount from session balance
+          await this.paywallGuard.deductFromSession(this.currentSessionId, requiredPrice);
+        }
       }
 
       try {
@@ -131,6 +160,21 @@ export class GatewayServer {
         );
       }
 
+      // Check paywall enforcement
+      const serverConfig = this.config.servers.find(s => s.name === resource.serverId);
+      if (serverConfig) {
+        const requiredPrice = PaywallGuard.getRequiredPriceMicroUSDC('resource', resource.originalUri, serverConfig);
+        if (requiredPrice !== null && requiredPrice > 0n) {
+          const isAuthorized = await this.paywallGuard.isSessionAuthorized(this.currentSessionId, requiredPrice);
+          if (!isAuthorized) {
+            throw this.createPaymentRequiredError('resource', resource.originalUri, requiredPrice, serverConfig);
+          }
+          
+          // Deduct the amount from session balance
+          await this.paywallGuard.deductFromSession(this.currentSessionId, requiredPrice);
+        }
+      }
+
       try {
         // Forward the call to the original server with the original URI
         const response = await connection.client.readResource({
@@ -178,6 +222,21 @@ export class GatewayServer {
         );
       }
 
+      // Check paywall enforcement
+      const serverConfig = this.config.servers.find(s => s.name === prompt.serverId);
+      if (serverConfig) {
+        const requiredPrice = PaywallGuard.getRequiredPriceMicroUSDC('prompt', prompt.originalName, serverConfig);
+        if (requiredPrice !== null && requiredPrice > 0n) {
+          const isAuthorized = await this.paywallGuard.isSessionAuthorized(this.currentSessionId, requiredPrice);
+          if (!isAuthorized) {
+            throw this.createPaymentRequiredError('prompt', prompt.originalName, requiredPrice, serverConfig);
+          }
+          
+          // Deduct the amount from session balance
+          await this.paywallGuard.deductFromSession(this.currentSessionId, requiredPrice);
+        }
+      }
+
       try {
         // Forward the call to the original server with the original prompt name
         const response = await connection.client.getPrompt({
@@ -194,6 +253,219 @@ export class GatewayServer {
         );
       }
     });
+  }
+
+  /**
+   * Get special paywall tools if any server has paywall enabled
+   */
+  private getPaywallTools(): Array<{ name: string; description: string; inputSchema: object }> {
+    const hasPaywallServers = this.config.servers.some(server => PaywallGuard.isPaywallEnabled(server));
+    if (!hasPaywallServers) {
+      return [];
+    }
+
+    return [
+      {
+        name: 'gateway:paywall:get-pricing',
+        description: 'Get pricing information for all paywall-enabled servers and their tools/resources/prompts',
+        inputSchema: {
+          type: 'object',
+          properties: {},
+          additionalProperties: false
+        }
+      },
+      {
+        name: 'gateway:paywall:authorize',
+        description: 'Authorize payment for paywall-enabled services using x402 payment or token',
+        inputSchema: {
+          type: 'object',
+          properties: {
+            xPayment: {
+              type: 'string',
+              description: 'Raw x402 payment envelope (optional if token is provided)'
+            },
+            token: {
+              type: 'string', 
+              description: 'JWT token from HTTP /pay endpoint (optional if xPayment is provided)'
+            },
+            sessionId: {
+              type: 'string',
+              description: 'Optional session ID (defaults to current session)'
+            }
+          },
+          additionalProperties: false
+        }
+      }
+    ];
+  }
+
+  /**
+   * Handle special paywall tools
+   */
+  private async handlePaywallTool(name: string, args: Record<string, any>): Promise<any> {
+    switch (name) {
+      case 'gateway:paywall:get-pricing':
+        return this.handleGetPricing();
+        
+      case 'gateway:paywall:authorize':
+        return this.handleAuthorizePayment(args);
+        
+      default:
+        throw new McpError(
+          ErrorCode.MethodNotFound,
+          `Unknown paywall tool: ${name}`
+        );
+    }
+  }
+
+  /**
+   * Handle get-pricing tool
+   */
+  private handleGetPricing(): any {
+    const pricing: Record<string, any> = {};
+    
+    for (const serverConfig of this.config.servers) {
+      if (!PaywallGuard.isPaywallEnabled(serverConfig)) continue;
+      
+      const serverPricing: any = {
+        enabled: true,
+        maxValueMicroUSDC: PaywallGuard.getMaxValueMicroUSDC(serverConfig).toString(),
+        network: serverConfig.paywall!.wallet.network,
+        recipient: 'wallet-address-placeholder', // Would be derived from wallet in real implementation
+        defaultPriceMicroUSDC: serverConfig.paywall!.pricing.defaultPriceMicroUSDC || '0',
+        tools: {},
+        resources: {},
+        prompts: {}
+      };
+
+      // Add per-tool pricing
+      if (serverConfig.paywall!.pricing.perTool) {
+        serverPricing.tools = { ...serverConfig.paywall!.pricing.perTool };
+      }
+
+      // Add per-resource pricing
+      if (serverConfig.paywall!.pricing.perResource) {
+        serverPricing.resources = { ...serverConfig.paywall!.pricing.perResource };
+      }
+
+      // Add per-prompt pricing
+      if (serverConfig.paywall!.pricing.perPrompt) {
+        serverPricing.prompts = { ...serverConfig.paywall!.pricing.perPrompt };
+      }
+
+      pricing[serverConfig.name] = serverPricing;
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: `Paywall Pricing Information:\n\n${JSON.stringify(pricing, null, 2)}`
+        }
+      ]
+    };
+  }
+
+  /**
+   * Handle authorize payment tool
+   */
+  private async handleAuthorizePayment(args: Record<string, any>): Promise<any> {
+    const { xPayment, token, sessionId } = args;
+    const targetSessionId = sessionId || this.currentSessionId;
+
+    if (!xPayment && !token) {
+      throw new McpError(
+        ErrorCode.InvalidParams,
+        'Either xPayment or token must be provided'
+      );
+    }
+
+    try {
+      if (token) {
+        // Handle JWT token from HTTP endpoint (placeholder implementation)
+        throw new McpError(
+          ErrorCode.InvalidParams,
+          'Token-based authorization not yet implemented. Use xPayment instead.'
+        );
+      }
+
+      if (xPayment) {
+        // For now, use a simplified verification
+        // In production, this would parse and verify the x402 payment properly
+        const expectedAmount = 100000n; // 0.10 USDC as example
+        const network = 'base-sepolia';
+        const recipient = 'placeholder-recipient';
+
+        const receipt = await this.paywallGuard.verifyX402Payment(
+          xPayment,
+          expectedAmount,
+          network,
+          recipient
+        );
+
+        await this.paywallGuard.recordAuthorization(targetSessionId, receipt, 0n);
+
+        const remainingBalance = this.paywallGuard.getSessionBalance(targetSessionId);
+
+        return {
+          content: [
+            {
+              type: 'text',
+              text: `Payment authorized successfully!\n\nSession: ${targetSessionId}\nAmount: ${receipt.amount} micro-USDC\nRemaining balance: ${remainingBalance} micro-USDC\n\nYou can now use paywall-protected tools, resources, and prompts.`
+            }
+          ]
+        };
+      }
+
+    } catch (error) {
+      this.logger.error(`Payment authorization failed: ${error}`);
+      throw new McpError(
+        ErrorCode.InternalError,
+        `Payment authorization failed: ${error}`
+      );
+    }
+
+    throw new McpError(
+      ErrorCode.InvalidParams,
+      'Invalid payment authorization request'
+    );
+  }
+
+  /**
+   * Create a payment required error with structured data
+   */
+  private createPaymentRequiredError(
+    kind: 'tool' | 'resource' | 'prompt',
+    id: string,
+    requiredPrice: bigint,
+    serverConfig: McpServerConfig
+  ): McpError {
+    const network = serverConfig.paywall!.wallet.network;
+    const nonce = Date.now().toString();
+    const howToPayUrl = `https://docs.x402.org/how-to-pay`; // Placeholder URL
+
+    const errorData = {
+      paymentRequired: true,
+      kind,
+      id,
+      amountMicroUSDC: requiredPrice.toString(),
+      network,
+      token: 'USDC',
+      recipient: 'wallet-address-placeholder', // Would be derived from wallet
+      nonce,
+      howToPay: howToPayUrl,
+      instructions: `This ${kind} requires payment of ${requiredPrice} micro-USDC ($${(Number(requiredPrice) / 1_000_000).toFixed(6)}). Use the 'gateway:paywall:authorize' tool with an x402 payment, or visit ${howToPayUrl} for instructions.`,
+      paywallTools: [
+        'gateway:paywall:get-pricing - Get pricing information',
+        'gateway:paywall:authorize - Authorize payment with x402 payment or token'
+      ]
+    };
+
+    return new McpError(
+      ErrorCode.InternalError, // Using InternalError as MCP doesn't have a PaymentRequired error code
+      `Payment required for ${kind} '${id}': ${requiredPrice} micro-USDC`,
+      errorData
+    );
   }
 
   /**
@@ -330,6 +602,9 @@ export class GatewayServer {
 
     // Close all server connections
     await this.serverManager.closeAll();
+
+    // Clean up paywall guard
+    this.paywallGuard.destroy();
 
     // Close the main server
     await this.server.close();

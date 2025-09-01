@@ -78,6 +78,12 @@ run_quick_tests() {
 run_full_tests() {
     print_header "Running Full E2E Tests"
     npm run test
+    
+    print_header "Running Paywall Unit Tests"
+    npm run test:paywall:unit
+    
+    print_header "Running Paywall E2E Tests"
+    npm run test:paywall:e2e
 }
 
 # Function to test specific configuration
