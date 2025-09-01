@@ -36,48 +36,38 @@ print_warning() {
 check_prerequisites() {
     print_header "Checking Prerequisites"
     
-    # Check Node.js
-    if ! command -v node &> /dev/null; then
-        print_error "Node.js is not installed"
+    # Check Bun
+    if ! command -v bun &> /dev/null; then
+        print_error "Bun is not installed"
         exit 1
     fi
-    print_success "Node.js found: $(node --version)"
+    print_success "Bun found: $(bun --version)"
     
-    # Check npm
-    if ! command -v npm &> /dev/null; then
-        print_error "npm is not installed"
-        exit 1
-    fi
-    print_success "npm found: $(npm --version)"
-    
-    # Check if dependencies are installed
-    if [ ! -d "node_modules" ]; then
-        print_warning "node_modules not found, installing dependencies..."
-        npm install
-    fi
-    print_success "Dependencies ready"
+    # Ensure dependencies installed via Bun
+    bun install
+    print_success "Dependencies installed"
     
     echo ""
 }
 
 # Function to build project
 build_project() {
-    print_header "Building Project"
-    npm run build
-    print_success "Build completed"
+    print_header "Type-check Project"
+    bun x tsc --noEmit
+    print_success "Type-check completed"
     echo ""
 }
 
 # Function to run quick tests
 run_quick_tests() {
     print_header "Running Quick E2E Tests"
-    npm run test:quick
+    bun run tests/e2e-simple.ts
 }
 
 # Function to run full tests
 run_full_tests() {
     print_header "Running Full E2E Tests"
-    npm run test
+    bun run tests/e2e-test.ts
 }
 
 # Function to test specific configuration
@@ -100,7 +90,7 @@ test_config() {
     echo "Press Ctrl+C to stop..."
     echo ""
     
-    node build/index.js --config="tests/configs/$config_file"
+    bun run src/index.ts --config="tests/configs/$config_file"
 }
 
 # Function to run manual testing with inspector
@@ -120,7 +110,7 @@ run_manual_test() {
     echo "This will open the MCP Inspector for interactive testing..."
     echo ""
     
-    npx @modelcontextprotocol/inspector node build/index.js --config="tests/configs/$config_file"
+    bun x @modelcontextprotocol/inspector bun run src/index.ts --config="tests/configs/$config_file"
 }
 
 # Function to show usage

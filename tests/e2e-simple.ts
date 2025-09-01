@@ -29,8 +29,8 @@ class SimpleE2ETestRunner {
     console.log('🚀 Starting Eliza MCP Gateway Simple E2E Tests\n');
     
     try {
-      // Build the project first
-      await this.buildProject();
+      // Type-check first
+      await this.typeCheckProject();
       
       // Run core tests
       await this.testConfigurationLoading();
@@ -47,13 +47,13 @@ class SimpleE2ETestRunner {
     }
   }
 
-  private async buildProject(): Promise<void> {
-    console.log('🔨 Building project...');
+  private async typeCheckProject(): Promise<void> {
+    console.log('🔎 Type-checking project...');
     try {
-      await this.runCommand('npm', ['run', 'build']);
-      console.log('✅ Build completed\n');
+      await this.runCommand('bun', ['x', 'tsc', '--noEmit']);
+      console.log('✅ Type-check completed\n');
     } catch (error) {
-      throw new Error(`Build failed: ${error}`);
+      throw new Error(`Type-check failed: ${error}`);
     }
   }
 
@@ -236,12 +236,12 @@ class SimpleE2ETestRunner {
 
   private async runGatewayWithTimeout(configPath?: string, timeoutMs: number = 5000): Promise<string> {
     return new Promise((resolve, reject) => {
-      const args = ['build/index.js'];
+      const args = ['run', 'src/index.ts'];
       if (configPath) {
         args.push(`--config=${configPath}`);
       }
 
-      const gatewayProcess = spawn('node', args, {
+      const gatewayProcess = spawn('bun', args, {
         stdio: ['pipe', 'pipe', 'pipe'],
         cwd: process.cwd()
       });

@@ -4,7 +4,7 @@ import {
   type AggregatedResource,
   type AggregatedPrompt,
   type GatewayConfig 
-} from './types.js';
+} from '../types/index';
 
 export class GatewayRegistry {
   private tools = new Map<string, AggregatedTool>();
@@ -24,12 +24,10 @@ export class GatewayRegistry {
   async refresh(connections: Map<string, ServerConnection>): Promise<void> {
     this.logger.info('Refreshing aggregated registry...');
     
-    // Clear existing registries
     this.tools.clear();
     this.resources.clear();
     this.prompts.clear();
 
-    // Collect from all connected servers
     for (const [serverId, connection] of connections) {
       if (connection.status !== 'connected' || !connection.client) {
         continue;
@@ -49,16 +47,13 @@ export class GatewayRegistry {
     this.logger.info(`Registry refreshed: ${this.tools.size} tools, ${this.resources.size} resources, ${this.prompts.size} prompts`);
   }
 
-  /**
-   * Collect tools from a server
-   */
   private async collectTools(serverId: string, connection: ServerConnection): Promise<void> {
     if (!connection.capabilities?.tools) {
       return;
     }
 
     try {
-      const response = await connection.client.listTools();
+      const response = await connection.client!.listTools();
       const namespace = connection.config.namespace;
 
       for (const tool of response.tools || []) {
@@ -68,10 +63,9 @@ export class GatewayRegistry {
           serverId,
           namespace,
           description: tool.description,
-          inputSchema: tool.inputSchema
+          inputSchema: tool.inputSchema as object
         };
 
-        // Handle conflicts if enabled
         if (this.config.settings?.enableToolConflictResolution && this.tools.has(aggregatedTool.name)) {
           const conflictedName = `${aggregatedTool.name}_${serverId}`;
           this.logger.warn(`Tool name conflict for '${aggregatedTool.name}', renaming to '${conflictedName}'`);
@@ -87,16 +81,13 @@ export class GatewayRegistry {
     }
   }
 
-  /**
-   * Collect resources from a server
-   */
   private async collectResources(serverId: string, connection: ServerConnection): Promise<void> {
     if (!connection.capabilities?.resources) {
       return;
     }
 
     try {
-      const response = await connection.client.listResources();
+      const response = await connection.client!.listResources();
       const namespace = connection.config.namespace;
 
       for (const resource of response.resources || []) {
@@ -110,7 +101,6 @@ export class GatewayRegistry {
           mimeType: resource.mimeType
         };
 
-        // Handle conflicts if enabled
         if (this.config.settings?.enableResourceConflictResolution && this.resources.has(aggregatedResource.uri)) {
           const conflictedUri = `${aggregatedResource.uri}_${serverId}`;
           this.logger.warn(`Resource URI conflict for '${aggregatedResource.uri}', renaming to '${conflictedUri}'`);
@@ -126,16 +116,13 @@ export class GatewayRegistry {
     }
   }
 
-  /**
-   * Collect prompts from a server
-   */
   private async collectPrompts(serverId: string, connection: ServerConnection): Promise<void> {
     if (!connection.capabilities?.prompts) {
       return;
     }
 
     try {
-      const response = await connection.client.listPrompts();
+      const response = await connection.client!.listPrompts();
       const namespace = connection.config.namespace;
 
       for (const prompt of response.prompts || []) {
@@ -148,7 +135,6 @@ export class GatewayRegistry {
           arguments: prompt.arguments
         };
 
-        // Handle conflicts if enabled
         if (this.config.settings?.enablePromptConflictResolution && this.prompts.has(aggregatedPrompt.name)) {
           const conflictedName = `${aggregatedPrompt.name}_${serverId}`;
           this.logger.warn(`Prompt name conflict for '${aggregatedPrompt.name}', renaming to '${conflictedName}'`);
@@ -164,82 +150,50 @@ export class GatewayRegistry {
     }
   }
 
-  /**
-   * Add namespace prefix to a name
-   */
   private getNameWithNamespace(name: string, namespace?: string): string {
     if (!namespace) {
       return name;
     }
-    
-    // Always ensure proper colon separator
     return `${namespace}:${name}`;
   }
 
-  /**
-   * Add namespace prefix to a URI
-   */
   private getUriWithNamespace(uri: string, namespace?: string): string {
     if (!namespace) {
       return uri;
     }
-
-    // For URIs, we prefix the scheme or add a namespace parameter
     try {
       const url = new URL(uri);
       url.searchParams.set('namespace', namespace);
       return url.toString();
     } catch {
-      // If not a valid URL, just prefix
       return `${namespace}:${uri}`;
     }
   }
 
-  /**
-   * Get all aggregated tools
-   */
   getTools(): AggregatedTool[] {
     return Array.from(this.tools.values());
   }
 
-  /**
-   * Get all aggregated resources
-   */
   getResources(): AggregatedResource[] {
     return Array.from(this.resources.values());
   }
 
-  /**
-   * Get all aggregated prompts
-   */
   getPrompts(): AggregatedPrompt[] {
     return Array.from(this.prompts.values());
   }
 
-  /**
-   * Find a tool by name
-   */
   findTool(name: string): AggregatedTool | undefined {
     return this.tools.get(name);
   }
 
-  /**
-   * Find a resource by URI
-   */
   findResource(uri: string): AggregatedResource | undefined {
     return this.resources.get(uri);
   }
 
-  /**
-   * Find a prompt by name
-   */
   findPrompt(name: string): AggregatedPrompt | undefined {
     return this.prompts.get(name);
   }
 
-  /**
-   * Get registry statistics
-   */
   getStats(): {
     tools: number;
     resources: number;
@@ -257,7 +211,6 @@ export class GatewayRegistry {
       promptsByServer: {} as Record<string, number>
     };
 
-    // Count by server
     for (const tool of this.tools.values()) {
       stats.toolsByServer[tool.serverId] = (stats.toolsByServer[tool.serverId] || 0) + 1;
     }
@@ -273,3 +226,5 @@ export class GatewayRegistry {
     return stats;
   }
 }
+
+
