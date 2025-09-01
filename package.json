@@ -5,16 +5,16 @@
   "type": "module",
   "main": "build/index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node build/index.js",
-    "dev": "tsx src/index.ts",
-    "type-check": "tsc --noEmit",
-    "test": "npm run build && tsx tests/e2e-test.ts",
-    "test:quick": "tsx tests/e2e-simple.ts",
-    "test:x402": "npm run build && tsx tests/e2e-x402.ts",
-    "test:x402:unit": "npm run build && tsx tests/unit-x402.ts",
-    "test:x402:context7": "npm run build && tsx tests/integration-context7-x402.ts",
-    "test:x402:context7:simple": "npm run build && tsx tests/integration-context7-x402-simple.ts"
+    "build": "bunx tsc",
+    "start": "bun build/index.js",
+    "dev": "bunx tsx src/index.ts",
+    "type-check": "bunx tsc --noEmit",
+    "test": "bun run build && bunx tsx tests/e2e-test.ts",
+    "test:quick": "bunx tsx tests/e2e-simple.ts",
+    "test:x402": "bun run build && bunx tsx tests/e2e-x402.ts",
+    "test:x402:unit": "bun run build && bunx tsx tests/unit-x402.ts",
+    "test:x402:context7": "bun run build && bunx tsx tests/integration-context7-x402.ts",
+    "test:x402:context7:simple": "bun run build && bunx tsx tests/integration-context7-x402-simple.ts"
   },
   "keywords": [
     "mcp",
