@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "test": {
+      "transport": {
+        "type": "http",
+        "url": "http://localhost:54021/test"
+      },
+      "x402Middleware": {
+        "enabled": true,
+        "wallet": {
+          "type": "evm",
+          "network": "base-sepolia",
+          "privateKeyEnv": "TEST_PRIVATE_KEY"
+        },
+        "maxValueMicroUSDC": "150000"
+      }
+    }
+  }
+}

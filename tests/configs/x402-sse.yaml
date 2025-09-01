@@ -1,0 +1,21 @@
+mcpServers:
+  # SSE server with x402 enabled
+  sse-x402:
+    transport:
+      type: sse
+      sseUrl: http://localhost:4001/sse
+    x402Middleware:
+      enabled: true
+      wallet:
+        type: evm
+        network: base
+        privateKeyEnv: X402_EVM_PRIVATE_KEY
+      maxValueMicroUSDC: "50000" # 0.05 USDC limit
+    
+  # SSE server with API key and x402
+  sse-apikey-x402:
+    transport:
+      type: sse
+      sseUrl: http://localhost:4002/sse
+      apiKey: ${TEST_API_KEY}
+    x402Middleware: true

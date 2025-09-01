@@ -21,6 +21,8 @@ servers:
       apiKey: "YOUR_CONTEXT7_API_KEY"
     namespace: "docs"
     enabled: true
+    # Enable per-server x402 payments (HTTP 402 handling with wallet)
+    x402Middleware: true
 
   # Local filesystem access
   - name: "filesystem"
@@ -41,6 +43,14 @@ servers:
         X-Company-Client: "mcp-aggregator"
     namespace: "db"
     enabled: false
+    # Advanced configuration example
+    x402Middleware:
+      enabled: true
+      wallet:
+        type: "evm"
+        network: "base" # or base-sepolia, solana-devnet, etc.
+        privateKeyEnv: "X402_EVM_PRIVATE_KEY"
+      maxValueMicroUSDC: "100000"
 
 settings:
   enableToolConflictResolution: true

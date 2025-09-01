@@ -1,0 +1,53 @@
+# Example configuration for x402 payment-enabled MCP servers
+
+mcpServers:
+  # Example 1: Simple x402 enablement
+  # Uses default settings: EVM wallet, base-sepolia network, 0.10 USDC limit
+  paid-weather-api:
+    transport:
+      type: http
+      url: https://api.weather-provider.com/mcp
+    x402Middleware: true
+    # Requires X402_EVM_PRIVATE_KEY environment variable
+    
+  # Example 2: Detailed x402 configuration
+  paid-llm-api:
+    transport:
+      type: http
+      url: https://api.llm-provider.com/v1/mcp
+      headers:
+        X-API-Version: "2024-01"
+    x402Middleware:
+      enabled: true
+      wallet:
+        type: evm                    # Wallet type (currently only 'evm' supported)
+        network: base               # Network: base, base-sepolia
+        privateKeyEnv: LLM_WALLET_KEY  # Custom env var for private key
+      maxValueMicroUSDC: "500000"   # Max 0.50 USDC per request
+    
+  # Example 3: SSE endpoint with x402
+  paid-realtime-data:
+    transport:
+      type: sse
+      sseUrl: https://stream.data-provider.com/events
+    x402Middleware:
+      enabled: true
+      wallet:
+        type: evm
+        network: base-sepolia
+        privateKeyEnv: X402_EVM_PRIVATE_KEY
+      maxValueMicroUSDC: "100000"   # Max 0.10 USDC per request
+    
+  # Example 4: Mixed setup - some servers with x402, some without
+  free-server:
+    transport:
+      type: stdio
+      command: node
+      args: ["./free-mcp-server.js"]
+    # No x402Middleware - this server is free to use
+    
+  premium-server:
+    transport:
+      type: http
+      url: https://premium.service.com/mcp
+    x402Middleware: true  # This server requires payment

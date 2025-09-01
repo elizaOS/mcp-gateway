@@ -37,6 +37,32 @@ export class ServerManager {
 
     const successfulConnections = results.filter(r => r.status === 'fulfilled').length;
     this.logger.info(`Initialized ${successfulConnections}/${enabledServers.length} servers successfully`);
+    
+    // Log x402 payment status for each server
+    const x402EnabledServers = enabledServers.filter(server => {
+      if (typeof server.x402Middleware === 'boolean') return server.x402Middleware;
+      return server.x402Middleware?.enabled === true;
+    });
+    
+    if (x402EnabledServers.length > 0) {
+      this.logger.info(`x402 Payment Middleware Status:`);
+      for (const server of enabledServers) {
+        const isX402Enabled = typeof server.x402Middleware === 'boolean' 
+          ? server.x402Middleware 
+          : server.x402Middleware?.enabled === true;
+        
+        if (isX402Enabled) {
+          const details = typeof server.x402Middleware === 'object' ? server.x402Middleware : null;
+          const network = details?.wallet?.network || 'base-sepolia';
+          const maxUSDC = details?.maxValueMicroUSDC ? 
+            `$${(parseInt(details.maxValueMicroUSDC) / 1_000_000).toFixed(2)}` : 
+            '$0.10';
+          this.logger.info(`  - ${server.name}: ✅ x402 ENABLED (network: ${network}, max: ${maxUSDC}/request)`);
+        } else {
+          this.logger.info(`  - ${server.name}: ❌ x402 disabled`);
+        }
+      }
+    }
   }
 
   /**

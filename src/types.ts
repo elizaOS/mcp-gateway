@@ -38,6 +38,19 @@ const TransportConfigSchema = z.discriminatedUnion('type', [
   WebSocketTransportSchema
 ]);
 
+// x402 middleware configuration schemas
+const X402WalletSchema = z.object({
+  type: z.enum(['evm', 'svm', 'multi']).describe('Wallet type to use for x402 payments'),
+  network: z.string().describe('Network identifier, e.g. base, base-sepolia, solana-devnet'),
+  privateKeyEnv: z.string().describe('Environment variable name containing the private key')
+});
+
+const X402MiddlewareSchema = z.object({
+  enabled: z.boolean().default(true).describe('Enable x402 payment middleware for this server'),
+  wallet: X402WalletSchema.describe('Wallet configuration for creating payment headers'),
+  maxValueMicroUSDC: z.string().optional().describe('Maximum payment per request in micro-USDC (default 100000 = $0.10)')
+});
+
 // Configuration schema for individual MCP servers
 export const McpServerConfigSchema = z.object({
   name: z.string().describe('Unique name for this server'),
@@ -51,7 +64,9 @@ export const McpServerConfigSchema = z.object({
   enabled: z.boolean().default(true).describe('Whether this server is enabled'),
   timeout: z.number().default(30000).describe('Connection timeout in milliseconds'),
   retryAttempts: z.number().default(3).describe('Number of retry attempts on failure'),
-  retryDelay: z.number().default(1000).describe('Delay between retries in milliseconds')
+  retryDelay: z.number().default(1000).describe('Delay between retries in milliseconds'),
+  // x402 middleware can be enabled as a boolean or configured with an object
+  x402Middleware: z.union([z.boolean(), X402MiddlewareSchema]).optional().describe('Enable and configure x402 payment middleware')
 });
 
 // Main gateway configuration

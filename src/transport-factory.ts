@@ -4,6 +4,7 @@ import { SSEClientTransport } from '@modelcontextprotocol/sdk/client/sse.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { WebSocketClientTransport } from '@modelcontextprotocol/sdk/client/websocket.js';
 import { type TransportConfig, type McpServerConfig } from './types.js';
+import { createX402Fetch, isX402Enabled } from './x402.js';
 
 export class TransportFactory {
   /**
@@ -15,7 +16,13 @@ export class TransportFactory {
 
     switch (transportConfig.type) {
       case 'stdio':
-        const stdioParams: any = {
+        interface StdioClientOptions {
+          command: string;
+          args: string[];
+          env: Record<string, string>;
+          cwd?: string;
+        }
+        const stdioParams: StdioClientOptions = {
           command: transportConfig.command,
           args: transportConfig.args || [],
           env: {
@@ -28,15 +35,40 @@ export class TransportFactory {
         }
         return new StdioClientTransport(stdioParams);
       
-      case 'http':
-        return new StreamableHTTPClientTransport(
-          new URL(transportConfig.url)
-        );
+      case 'http': {
+        const baseUrl = new URL(transportConfig.url);
+        const requestInit: RequestInit = { headers: {} };
+        // propagate headers/apiKey if present in transport config
+        if ((transportConfig as any).headers) {
+          requestInit.headers = { ...(transportConfig as any).headers } as HeadersInit;
+        }
+        if ((transportConfig as any).apiKey) {
+          (requestInit.headers as Record<string, string>)['Authorization'] = `Bearer ${(transportConfig as any).apiKey}`;
+        }
+
+        if (isX402Enabled(config)) {
+          return this.createHttpWithX402(config, baseUrl, requestInit);
+        }
+
+        return new StreamableHTTPClientTransport(baseUrl, { requestInit });
+      }
         
-      case 'sse':
-        return new SSEClientTransport(
-          new URL(transportConfig.sseUrl)
-        );
+      case 'sse': {
+        const sseUrl = new URL(transportConfig.sseUrl);
+        const requestInit: RequestInit = { headers: {} };
+        if ((transportConfig as any).headers) {
+          requestInit.headers = { ...(transportConfig as any).headers } as HeadersInit;
+        }
+        if ((transportConfig as any).apiKey) {
+          (requestInit.headers as Record<string, string>)['Authorization'] = `Bearer ${(transportConfig as any).apiKey}`;
+        }
+
+        if (isX402Enabled(config)) {
+          return this.createSseWithX402(config, sseUrl, requestInit);
+        }
+
+        return new SSEClientTransport(sseUrl, { requestInit });
+      }
 
       case 'websocket':
         return new WebSocketClientTransport(
@@ -134,5 +166,30 @@ export class TransportFactory {
     } catch {
       return 'Invalid';
     }
+  }
+
+  private static createHttpWithX402(config: McpServerConfig, url: URL, requestInit: RequestInit) {
+    // Create a fetch wrapper that loads x402 fetch on first use
+    const fetchPromise = createX402Fetch(config);
+    
+    function fetchWrapper(input: URL | RequestInfo, init?: RequestInit): Promise<Response>;
+    function fetchWrapper(input: string | URL | Request, init?: RequestInit): Promise<Response>;
+    function fetchWrapper(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+      return fetchPromise.then(x402Fetch => x402Fetch(input as string | URL | Request, init));
+    }
+    
+    return new StreamableHTTPClientTransport(url, { fetch: fetchWrapper, requestInit });
+  }
+
+  private static createSseWithX402(config: McpServerConfig, url: URL, requestInit: RequestInit) {
+    const fetchPromise = createX402Fetch(config);
+    
+    function fetchWrapper(input: URL | RequestInfo, init?: RequestInit): Promise<Response>;
+    function fetchWrapper(input: string | URL | Request, init?: RequestInit): Promise<Response>;
+    function fetchWrapper(input: string | URL | Request, init?: RequestInit): Promise<Response> {
+      return fetchPromise.then(x402Fetch => x402Fetch(input as string | URL | Request, init));
+    }
+    
+    return new SSEClientTransport(url, { requestInit, fetch: fetchWrapper });
   }
 }

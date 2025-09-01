@@ -1,0 +1,45 @@
+# Test configuration wrapping Context7 MCP server with x402 payment middleware
+# This demonstrates how to add payment requirements to any MCP server
+#
+# Prerequisites:
+# - Set CONTEXT7_API_KEY environment variable with your Context7 API key
+# - Set X402_TEST_PRIVATE_KEY environment variable with your EVM wallet private key
+
+servers:
+  # Context7 with x402 enabled - requires payment for documentation lookups
+  - name: context7-paid
+    # Use stdio transport to connect to Context7
+    transport:
+      type: stdio
+      command: npx
+      args: 
+        - "@upstash/context7-mcp"
+      env:
+        CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
+    
+    # Enable x402 payment middleware
+    x402Middleware:
+      enabled: true
+      wallet:
+        type: evm
+        network: base-sepolia
+        privateKeyEnv: X402_TEST_PRIVATE_KEY
+      maxValueMicroUSDC: "100000" # Max 0.10 USDC per request
+    
+    # Optional: namespace to avoid conflicts
+    namespace: "docs"
+    
+    # Enable this server
+    enabled: true
+    
+  # Same Context7 server without x402 (for comparison)
+  - name: context7-free
+    transport:
+      type: stdio
+      command: npx
+      args: 
+        - "@upstash/context7-mcp"
+      env:
+        CONTEXT7_API_KEY: "${CONTEXT7_API_KEY}"
+    namespace: "free-docs"
+    enabled: true
