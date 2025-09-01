@@ -1,0 +1,6 @@
+[submodule "x402"]
+	path = x402
+	url = https://github.com/coinbase/x402
+[submodule "modelcontextprotocol"]
+	path = modelcontextprotocol
+	url = https://github.com/modelcontextprotocol/modelcontextprotocol
