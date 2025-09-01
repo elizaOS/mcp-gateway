@@ -1,0 +1,29 @@
+mcpServers:
+  # HTTP server with x402 enabled (boolean form)
+  x402-simple:
+    transport:
+      type: http
+      url: http://localhost:3001/mcp
+    x402Middleware: true
+    
+  # HTTP server with detailed x402 configuration
+  x402-detailed:
+    transport:
+      type: http
+      url: http://localhost:3002/mcp
+      headers:
+        X-Custom-Header: test-value
+    x402Middleware:
+      enabled: true
+      wallet:
+        type: evm
+        network: base-sepolia
+        privateKeyEnv: X402_TEST_PRIVATE_KEY
+      maxValueMicroUSDC: "200000" # 0.20 USDC limit
+    
+  # HTTP server with x402 disabled
+  no-x402:
+    transport:
+      type: http
+      url: http://localhost:3003/mcp
+    x402Middleware: false

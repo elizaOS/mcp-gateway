@@ -234,6 +234,26 @@ npm run test:quick  # Fast, essential tests only
 npm run test        # Full test suite (slower but comprehensive)
 ```
 
+## 🔐 Environment Variables
+
+When using x402 payment middleware or certain MCP servers, you'll need to set environment variables:
+
+```bash
+# Copy the example environment file
+cp env.example .env
+
+# Edit .env and add your keys:
+# - CONTEXT7_API_KEY: Get from https://context7.com/dashboard
+# - X402_EVM_PRIVATE_KEY: Your EVM wallet private key for payments
+# - X402_TEST_PRIVATE_KEY: Test wallet key (for testing only)
+# - TEST_PRIVATE_KEY: Additional test key for unit tests
+```
+
+**Security Notes:**
+- Never commit `.env` files or actual private keys to version control
+- Use environment variables or secure key management systems in production
+- For testing, generate test-only keys that don't hold real funds
+
 ## 📊 Example Output
 
 When running with multiple servers, you'll see:

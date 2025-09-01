@@ -1,0 +1,59 @@
+# Production example: Context7 MCP server with x402 payment middleware
+# 
+# Context7 provides up-to-date documentation for various libraries and frameworks.
+# By wrapping it with x402, you can monetize documentation lookups.
+#
+# Prerequisites:
+# 1. Get a Context7 API key from https://context7.com/dashboard
+# 2. Set up an EVM wallet with USDC on Base/Base-Sepolia
+# 3. Set environment variables:
+#    - CONTEXT7_API_KEY: Your Context7 API key
+#    - X402_CONTEXT7_PRIVATE_KEY: Your EVM wallet private key
+
+mcpServers:
+  # Context7 documentation service with x402 payments
+  context7-docs:
+    transport:
+      type: stdio
+      command: npx
+      args: 
+        - "-y"
+        - "@upstash/context7-mcp"
+        - "--api-key"
+        - "${CONTEXT7_API_KEY}"
+    
+    # x402 payment configuration
+    x402Middleware:
+      enabled: true
+      wallet:
+        type: evm
+        network: base  # Use base-sepolia for testing
+        privateKeyEnv: X402_CONTEXT7_PRIVATE_KEY
+      maxValueMicroUSDC: "50000"  # $0.05 per documentation lookup
+    
+    # Optional namespace to avoid tool name conflicts
+    namespace: "docs"
+    
+    # Enable this server
+    enabled: true
+    
+    # Connection settings
+    timeout: 60000  # 60 seconds - documentation lookups can take time
+    retryAttempts: 3
+    retryDelay: 2000
+
+# Example usage from your AI coding assistant:
+#
+# User: "use docs.resolve-library-id to find the react library"
+# Assistant calls: docs.resolve-library-id with { libraryName: "react" }
+# Result: Returns Context7 library ID like "/facebook/react"
+#
+# User: "use docs.get-library-docs to get react hooks documentation"  
+# Assistant calls: docs.get-library-docs with { 
+#   context7CompatibleLibraryID: "/facebook/react",
+#   topic: "hooks",
+#   tokens: 15000
+# }
+# Result: Returns comprehensive React hooks documentation
+#
+# Each successful call triggers a micro-payment via x402!

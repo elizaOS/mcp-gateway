@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "test": {
+      "transport": {
+        "type": "http",
+        "url": "http://localhost:54021/test"
+      },
+      "x402Middleware": true
+    }
+  }
+}

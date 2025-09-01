@@ -273,6 +273,21 @@ export class GatewayServer {
     this.logger.info(`- Tools: ${registryStats.tools}`);
     this.logger.info(`- Resources: ${registryStats.resources}`);
     this.logger.info(`- Prompts: ${registryStats.prompts}`);
+    
+    // Log x402 payment status
+    const x402Servers = this.config.servers.filter(s => 
+      s.enabled !== false && (
+        typeof s.x402Middleware === 'boolean' ? s.x402Middleware : s.x402Middleware?.enabled
+      )
+    );
+    
+    if (x402Servers.length > 0) {
+      this.logger.info(`x402 Payment Enabled Servers: ${x402Servers.length}`);
+      for (const server of x402Servers) {
+        const namespace = server.namespace ? `${server.namespace}.` : '';
+        this.logger.info(`  - ${server.name}: Tools require payment (prefix: ${namespace}*)`);
+      }
+    }
 
     if (Object.keys(registryStats.toolsByServer).length > 0) {
       this.logger.info('Tools by Server:');
