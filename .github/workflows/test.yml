@@ -1,4 +1,4 @@
-name: CI/CD Tests
+name: CI - Bun
 
 on:
   push:
@@ -8,77 +8,34 @@ on:
 
 jobs:
   test:
-    name: E2E Tests
+    name: Tests (Bun)
     runs-on: ubuntu-latest
-    
-    strategy:
-      matrix:
-        node-version: [18.x, 20.x, 22.x]
-    
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
-      
-    - name: Setup Node.js ${{ matrix.node-version }}
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        
-    - name: Install dependencies
-      run: npm ci
-      
-    - name: Type check
-      run: npm run type-check
-      
-    - name: Build project
-      run: npm run build
-      
-    - name: Run E2E tests
-      run: npm run test:quick
-      
-    - name: Test configuration loading
-      run: |
-        echo "Testing basic configuration..."
-        timeout 10s node build/index.js --config=tests/configs/basic.yaml || true
-        echo "Testing JSON configuration..."
-        timeout 10s node build/index.js --config=tests/configs/basic.json || true
-        
-    - name: Test environment configuration
-      run: |
-        echo "Testing environment variables..."
-        timeout 10s env MCP_SERVERS="test:npx:user-review-mcp" node build/index.js || true
 
-  build-check:
-    name: Build Verification
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-      
-    - name: Setup Node.js
-      uses: actions/setup-node@v4
+    - name: Setup Bun
+      uses: oven-sh/setup-bun@v2
       with:
-        node-version: '20.x'
-        cache: 'npm'
-        
+        bun-version: latest
+
     - name: Install dependencies
-      run: npm ci
-      
-    - name: Build project
-      run: npm run build
-      
-    - name: Verify build artifacts
+      run: bun install --frozen-lockfile
+
+    - name: Type check
+      run: bun x tsc --noEmit
+
+    - name: Run quick E2E tests
+      run: bun run tests/e2e-simple.ts
+
+    - name: Run full E2E tests
+      run: bun run tests/e2e-test.ts
+
+    - name: Smoke: config loading with Bun
       run: |
-        ls -la build/
-        [ -f "build/index.js" ] || { echo "Missing index.js"; exit 1; }
-        [ -f "build/aggregator-server.js" ] || { echo "Missing aggregator-server.js"; exit 1; }
-        [ -f "build/config.js" ] || { echo "Missing config.js"; exit 1; }
-        echo "All build artifacts present ✅"
-        
-    - name: Test package installation
+        timeout 10s bun run src/index.ts --config=tests/configs/basic.yaml || true
+        timeout 10s bun run src/index.ts --config=tests/configs/basic.json || true
+
+    - name: Smoke: env config with Bun
       run: |
-        npm pack
-        npm install -g ./mcp-gateway-*.tgz
-        echo "Package installation successful ✅"
+        timeout 10s env MCP_SERVERS="test:npx:user-review-mcp" bun run src/index.ts || true

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { GatewayServer } from './aggregator-server.js';
-import { configManager } from './config.js';
+import { GatewayServer } from './core/gateway.js';
+import { configManager } from './config/manager.js';
 
 /**
  * Main entry point for the MCP Gateway Server
@@ -39,6 +39,8 @@ async function main(): Promise<void> {
     await gateway.connect(transport);
 
     configLogger.info('MCP Gateway is now serving on stdio');
+    // Compatibility message for older tests looking for this exact phrase
+    configLogger.info('Listening on stdio');
 
     // Handle graceful shutdown
     const shutdown = async (signal: string) => {

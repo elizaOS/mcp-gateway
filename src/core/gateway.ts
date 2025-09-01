@@ -10,9 +10,10 @@ import {
   GetPromptRequestSchema
 } from '@modelcontextprotocol/sdk/types.js';
 
-import { ServerManager } from './server-manager.js';
-import { GatewayRegistry } from './registry.js';
-import { type GatewayConfig } from './types.js';
+import { ServerManager } from './server-manager';
+import { GatewayRegistry } from './registry';
+import { type GatewayConfig } from '../types/index';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
 export class GatewayServer {
   private server: Server;
@@ -28,7 +29,6 @@ export class GatewayServer {
     this.serverManager = new ServerManager(logger);
     this.registry = new GatewayRegistry(config, logger);
 
-    // Initialize MCP server
     this.server = new Server(
       {
         name: config.name,
@@ -47,11 +47,7 @@ export class GatewayServer {
     this.setupHandlers();
   }
 
-  /**
-   * Setup MCP protocol handlers
-   */
   private setupHandlers(): void {
-    // List tools handler
     this.server.setRequestHandler(ListToolsRequestSchema, async () => {
       const tools = this.registry.getTools().map(tool => ({
         name: tool.name,
@@ -62,7 +58,6 @@ export class GatewayServer {
       return { tools };
     });
 
-    // Call tool handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       
@@ -83,8 +78,7 @@ export class GatewayServer {
       }
 
       try {
-        // Forward the call to the original server with the original tool name
-        const response = await connection.client.callTool({
+        const response = await connection.client!.callTool({
           name: tool.originalName,
           arguments: args || {}
         });
@@ -99,7 +93,6 @@ export class GatewayServer {
       }
     });
 
-    // List resources handler
     this.server.setRequestHandler(ListResourcesRequestSchema, async () => {
       const resources = this.registry.getResources().map(resource => ({
         uri: resource.uri,
@@ -111,7 +104,6 @@ export class GatewayServer {
       return { resources };
     });
 
-    // Read resource handler
     this.server.setRequestHandler(ReadResourceRequestSchema, async (request) => {
       const { uri } = request.params;
       
@@ -132,8 +124,7 @@ export class GatewayServer {
       }
 
       try {
-        // Forward the call to the original server with the original URI
-        const response = await connection.client.readResource({
+        const response = await connection.client!.readResource({
           uri: resource.originalUri
         });
 
@@ -147,7 +138,6 @@ export class GatewayServer {
       }
     });
 
-    // List prompts handler
     this.server.setRequestHandler(ListPromptsRequestSchema, async () => {
       const prompts = this.registry.getPrompts().map(prompt => ({
         name: prompt.name,
@@ -158,7 +148,6 @@ export class GatewayServer {
       return { prompts };
     });
 
-    // Get prompt handler
     this.server.setRequestHandler(GetPromptRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
       
@@ -179,8 +168,7 @@ export class GatewayServer {
       }
 
       try {
-        // Forward the call to the original server with the original prompt name
-        const response = await connection.client.getPrompt({
+        const response = await connection.client!.getPrompt({
           name: prompt.originalName,
           arguments: args || {}
         });
@@ -196,21 +184,15 @@ export class GatewayServer {
     });
   }
 
-  /**
-   * Start the aggregator server
-   */
   async start(): Promise<void> {
     try {
       this.logger.info(`Starting MCP Gateway Server: ${this.config.name} v${this.config.version}`);
 
-      // Initialize all backend server connections
       await this.serverManager.initializeServers(this.config.servers);
 
-      // Initial registry refresh
       const connectedServers = this.serverManager.getConnectedServers();
       await this.registry.refresh(connectedServers);
 
-      // Setup health check interval if configured
       const healthCheckInterval = this.config.settings?.healthCheckInterval;
       if (healthCheckInterval && healthCheckInterval > 0) {
         this.healthCheckInterval = setInterval(async () => {
@@ -219,45 +201,29 @@ export class GatewayServer {
       }
 
       this.logger.info('MCP Gateway Server started successfully');
-      
-      // Log current status
       this.logStatus();
-
     } catch (error) {
       this.logger.error(`Failed to start MCP Gateway Server: ${error}`);
       throw error;
     }
   }
 
-  /**
-   * Connect to transport and start serving
-   */
-  async connect(transport: any): Promise<void> {
+  async connect(transport: StdioServerTransport): Promise<void> {
     await this.server.connect(transport);
   }
 
-  /**
-   * Perform health check and refresh registry if needed
-   */
   private async performHealthCheck(): Promise<void> {
     try {
       this.logger.debug('Performing health check...');
-      
       await this.serverManager.performHealthChecks();
-      
-      // Refresh registry after health check
       const connectedServers = this.serverManager.getConnectedServers();
       await this.registry.refresh(connectedServers);
-      
       this.logger.debug('Health check completed');
     } catch (error) {
       this.logger.error(`Health check failed: ${error}`);
     }
   }
 
-  /**
-   * Log current server status
-   */
   private logStatus(): void {
     const connectionStatus = this.serverManager.getConnectionStatus();
     const registryStats = this.registry.getStats();
@@ -282,9 +248,6 @@ export class GatewayServer {
     }
   }
 
-  /**
-   * Get current status for API/debugging
-   */
   getStatus() {
     return {
       connections: this.serverManager.getConnectionStatus(),
@@ -293,32 +256,21 @@ export class GatewayServer {
     };
   }
 
-  /**
-   * Manually refresh the registry
-   */
   async refreshRegistry(): Promise<void> {
     const connectedServers = this.serverManager.getConnectedServers();
     await this.registry.refresh(connectedServers);
     this.logger.info('Registry manually refreshed');
   }
 
-  /**
-   * Stop the aggregator server
-   */
   async stop(): Promise<void> {
     this.logger.info('Stopping MCP Gateway Server...');
-
-    // Clear health check interval
     if (this.healthCheckInterval) {
       clearInterval(this.healthCheckInterval);
     }
-
-    // Close all server connections
     await this.serverManager.closeAll();
-
-    // Close the main server
     await this.server.close();
-
     this.logger.info('MCP Gateway Server stopped');
   }
 }
+
+

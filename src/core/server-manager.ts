@@ -1,9 +1,9 @@
 import { Client } from '@modelcontextprotocol/sdk/client/index.js';
-import { TransportFactory } from './transport-factory.js';
+import { TransportFactory } from '../transports/factory';
 import { 
   type McpServerConfig, 
   type ServerConnection
-} from './types.js';
+} from '../types/index';
 
 export class ServerManager {
   private connections = new Map<string, ServerConnection>();
@@ -108,31 +108,31 @@ export class ServerManager {
     resources?: boolean;
     prompts?: boolean;
   }> {
-    const capabilities: any = {};
+    const capabilities: { tools?: boolean; resources?: boolean; prompts?: boolean } = {};
 
     try {
       const tools = await client.listTools();
-      capabilities.tools = tools.tools && tools.tools.length > 0;
+      capabilities.tools = !!(tools.tools && tools.tools.length > 0);
     } catch {
       capabilities.tools = false;
     }
 
     try {
       const resources = await client.listResources();
-      capabilities.resources = resources.resources && resources.resources.length > 0;
+      capabilities.resources = !!(resources.resources && resources.resources.length > 0);
     } catch {
       capabilities.resources = false;
     }
 
     try {
       const prompts = await client.listPrompts();
-      capabilities.prompts = prompts.prompts && prompts.prompts.length > 0;
+      capabilities.prompts = !!(prompts.prompts && prompts.prompts.length > 0);
     } catch {
       capabilities.prompts = false;
     }
 
     return capabilities;
-  }
+    }
 
   /**
    * Get all connected servers
@@ -158,7 +158,7 @@ export class ServerManager {
       .filter(conn => conn.client && conn.status === 'connected')
       .map(async conn => {
         try {
-          await conn.client.close();
+          await conn.client!.close();
           conn.status = 'disconnected';
         } catch (error) {
           this.logger.error(`Error closing connection to ${conn.config.name}: ${error}`);
@@ -178,7 +178,7 @@ export class ServerManager {
     for (const [serverId, connection] of connectedServers) {
       try {
         // Simple health check by listing tools
-        await connection.client.listTools();
+        await connection.client!.listTools();
         connection.lastHealthCheck = new Date();
         connection.status = 'connected';
         delete connection.lastError;
@@ -206,7 +206,7 @@ export class ServerManager {
       connecting: 0,
       disconnected: 0,
       error: 0
-    };
+    } as { total: number; connected: number; connecting: number; disconnected: number; error: number };
 
     for (const connection of this.connections.values()) {
       status[connection.status]++;
@@ -215,3 +215,5 @@ export class ServerManager {
     return status;
   }
 }
+
+

@@ -5,12 +5,11 @@
   "type": "module",
   "main": "build/index.js",
   "scripts": {
-    "build": "tsc",
-    "start": "node build/index.js",
-    "dev": "tsx src/index.ts",
+    "start": "bun run src/index.ts",
+    "dev": "bun run src/index.ts",
     "type-check": "tsc --noEmit",
-    "test": "npm run build && tsx tests/e2e-test.ts",
-    "test:quick": "tsx tests/e2e-simple.ts"
+    "test": "bun run tests/e2e-test.ts",
+    "test:quick": "bun run tests/e2e-simple.ts"
   },
   "keywords": ["mcp", "gateway", "aggregator", "server", "proxy", "model-context-protocol"],
   "author": "MCP Gateway",
@@ -30,10 +29,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.10.0",
-    "tsx": "^4.19.1",
     "typescript": "^5.7.0"
   },
-  "bin": {
-    "mcp-gateway": "./build/index.js"
-  }
+  "bin": {}
 }

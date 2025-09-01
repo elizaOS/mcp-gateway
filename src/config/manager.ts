@@ -1,13 +1,10 @@
 import { readFileSync } from 'fs';
 import { parse as parseYAML } from 'yaml';
-import { GatewayConfigSchema, type GatewayConfig } from './types.js';
+import { GatewayConfigSchema, type GatewayConfig } from '../types/index';
 
 export class ConfigManager {
   private config: GatewayConfig | null = null;
 
-  /**
-   * Load configuration from a file (JSON or YAML)
-   */
   loadFromFile(filePath: string): GatewayConfig {
     try {
       const fileContent = readFileSync(filePath, 'utf-8');
@@ -29,9 +26,6 @@ export class ConfigManager {
     }
   }
 
-  /**
-   * Load configuration from environment variables and defaults
-   */
   loadFromEnv(): GatewayConfig {
     const rawConfig = {
       name: process.env.MCP_GATEWAY_NAME || 'Eliza MCP Gateway',
@@ -42,7 +36,7 @@ export class ConfigManager {
         enableToolConflictResolution: process.env.MCP_ENABLE_TOOL_CONFLICT_RESOLUTION !== 'false',
         enableResourceConflictResolution: process.env.MCP_ENABLE_RESOURCE_CONFLICT_RESOLUTION !== 'false',
         enablePromptConflictResolution: process.env.MCP_ENABLE_PROMPT_CONFLICT_RESOLUTION !== 'false',
-        logLevel: (process.env.MCP_LOG_LEVEL as any) || 'info',
+        logLevel: (process.env.MCP_LOG_LEVEL as 'error'|'warn'|'info'|'debug') || 'info',
         maxConcurrentConnections: parseInt(process.env.MCP_MAX_CONCURRENT_CONNECTIONS || '10'),
         healthCheckInterval: parseInt(process.env.MCP_HEALTH_CHECK_INTERVAL || '60000')
       }
@@ -54,9 +48,6 @@ export class ConfigManager {
     return this.config;
   }
 
-  /**
-   * Get the current configuration
-   */
   getConfig(): GatewayConfig {
     if (!this.config) {
       throw new Error('Configuration not loaded. Call loadFromFile() or loadFromEnv() first.');
@@ -64,11 +55,7 @@ export class ConfigManager {
     return this.config;
   }
 
-  /**
-   * Parse servers configuration from environment variables
-   * Format: MCP_SERVERS=server1:command1:arg1,arg2;server2:command2
-   */
-  private parseServersFromEnv(): Array<any> {
+  private parseServersFromEnv(): Array<{ name: string; command: string; args: string[] }> {
     const serversEnv = process.env.MCP_SERVERS;
     if (!serversEnv) {
       return [];
@@ -80,35 +67,34 @@ export class ConfigManager {
         throw new Error(`Invalid server specification: ${serverSpec}`);
       }
 
-      const [name, command, ...args] = parts;
+      const [nameRaw, commandRaw, ...args] = parts;
+      const name = nameRaw ?? '';
+      const command = commandRaw ?? '';
+      if (!name || !command) {
+        throw new Error(`Invalid server specification: ${serverSpec}`);
+      }
       return {
         name,
         command,
-        args: args.length > 0 ? args[0]?.split(',') : []
+        args: args.length > 0 ? (args[0] ? args[0].split(',') : []) : []
       };
     });
   }
 
-  /**
-   * Validate the configuration for common issues
-   */
   private validateConfig(config: GatewayConfig): void {
     const serverNames = new Set<string>();
     
     for (const server of config.servers) {
-      // Check for duplicate server names
       if (serverNames.has(server.name)) {
         throw new Error(`Duplicate server name: ${server.name}`);
       }
       serverNames.add(server.name);
 
-      // Validate namespace format if provided
       if (server.namespace && !/^[a-zA-Z][a-zA-Z0-9_-]*$/.test(server.namespace)) {
         throw new Error(`Invalid namespace format for server ${server.name}: ${server.namespace}`);
       }
     }
 
-    // Check if at least one server is enabled
     const enabledServers = config.servers.filter(s => s.enabled);
     if (enabledServers.length === 0) {
       throw new Error('At least one server must be enabled');
@@ -117,3 +103,5 @@ export class ConfigManager {
 }
 
 export const configManager = new ConfigManager();
+
+

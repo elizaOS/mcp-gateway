@@ -41,8 +41,8 @@ class E2ETestRunner {
     console.log('🚀 Starting Eliza MCP Gateway E2E Test Suite\n');
     
     try {
-      // Build the project first
-      await this.buildProject();
+      // Type-check first
+      await this.typeCheckProject();
       
       // Run test suites
       await this.runConfigurationTests();
@@ -62,10 +62,10 @@ class E2ETestRunner {
     }
   }
 
-  private async buildProject(): Promise<void> {
-    console.log('🔨 Building project...');
-    await this.runCommand('npm', ['run', 'build']);
-    console.log('✅ Build completed\n');
+  private async typeCheckProject(): Promise<void> {
+    console.log('🔎 Type-checking project...');
+    await this.runCommand('bun', ['x', 'tsc', '--noEmit']);
+    console.log('✅ Type-check completed\n');
   }
 
   private async runConfigurationTests(): Promise<void> {
@@ -301,12 +301,12 @@ class E2ETestRunner {
   }
 
   private async startGateway(configPath?: string): Promise<void> {
-    const args = ['build/index.js'];
+    const args = ['run', 'src/index.ts'];
     if (configPath) {
       args.push(`--config=${configPath}`);
     }
 
-    this.gatewayProcess = spawn('node', args, {
+    this.gatewayProcess = spawn('bun', args, {
       stdio: ['pipe', 'pipe', 'pipe'],
       cwd: process.cwd()
     });
@@ -358,8 +358,8 @@ class E2ETestRunner {
 
   private async createMCPClient(): Promise<Client> {
     const transport = new StdioClientTransport({
-      command: 'node',
-      args: ['build/index.js', '--config=tests/configs/basic.yaml']
+      command: 'bun',
+      args: ['run', 'src/index.ts', '--config=tests/configs/basic.yaml']
     });
 
     const client = new Client({
