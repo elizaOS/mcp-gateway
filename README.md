@@ -432,23 +432,63 @@ bun run start --config=examples/paid-config.yaml
 
 ## 🏗️ Architecture
 
+### High-Level Architecture
+
 ```mermaid
 graph TB
-    Client[MCP Client] --> Gateway[Eliza MCP Gateway]
-    Gateway --> Payment[Payment Middleware]
-    Gateway --> Registry[Unified Registry]
-    Gateway --> Manager[Server Manager]
+    Client[MCP Client<br/>Claude Desktop, Cursor, etc] -->|MCP Protocol<br/>STDIO| Gateway[Gateway Server]
 
-    Payment --> x402[x402 Facilitator]
-    Payment --> APIKeys[API Key Validation]
+    Gateway --> PM[Payment Middleware<br/>Optional]
+    Gateway --> Registry[Gateway Registry]
+    Gateway --> SM[Server Manager]
 
-    Manager --> Server1[Context7 MCP]
-    Manager --> Server2[User Review MCP]
-    Manager --> Server3[Other MCP Servers]
+    PM -->|Verify Payment| x402[x402 Facilitator<br/>Blockchain]
+    PM -->|Check API Key| Cache[API Key Cache]
 
-    Registry --> Tools[Aggregated Tools]
-    Registry --> Resources[Aggregated Resources]
-    Registry --> Prompts[Aggregated Prompts]
+    SM -->|STDIO| S1[MCP Server 1]
+    SM -->|HTTP| S2[MCP Server 2]
+    SM -->|SSE| S3[MCP Server 3]
+    SM -->|WebSocket| S4[MCP Server 4]
+
+    Registry -->|Aggregates| Tools[Tools Registry]
+    Registry -->|Aggregates| Resources[Resources Registry]
+    Registry -->|Aggregates| Prompts[Prompts Registry]
+
+    S1 & S2 & S3 & S4 -->|Capabilities| Registry
+
+    style Gateway fill:#4A90E2
+    style PM fill:#F39C12
+    style Registry fill:#27AE60
+    style SM fill:#8E44AD
+```
+
+### Request Flow
+
+```mermaid
+sequenceDiagram
+    participant Client as MCP Client
+    participant Gateway as Gateway Server
+    participant Payment as Payment Middleware
+    participant Registry as Gateway Registry
+    participant Server as Downstream MCP Server
+
+    Client->>Gateway: CallTool Request
+    Gateway->>Registry: Find Tool by Name
+    Registry-->>Gateway: Tool Info + Server ID
+
+    alt Payment Enabled
+        Gateway->>Payment: Verify Payment/API Key
+        alt Payment Valid
+            Payment-->>Gateway: Authorized
+        else Payment Invalid
+            Payment-->>Gateway: 402 Payment Required
+            Gateway-->>Client: Payment Required Response
+        end
+    end
+
+    Gateway->>Server: Execute Tool
+    Server-->>Gateway: Tool Result
+    Gateway-->>Client: Tool Result
 ```
 
 ## 🤝 Contributing
