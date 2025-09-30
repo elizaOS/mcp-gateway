@@ -1,0 +1,41 @@
+name: "MCP Gateway with x402 Passthrough"
+version: "1.0.0"
+description: "Gateway that forwards client payments directly to downstream paid x402 APIs"
+
+# Payment configuration
+payment:
+  enabled: false  # No inbound payment required (pure passthrough)
+
+servers:
+  # Example 1: Pure passthrough - forward client payment headers directly
+  - name: "paid-api-passthrough"
+    transport:
+      type: "http"
+      url: "https://paid-api.example.com/mcp"
+    namespace: "passthrough"
+    paymentMode: "passthrough"
+    # Client's x402 payment headers forwarded directly to downstream
+    # Gateway doesn't receive or process payments
+
+  # Example 2: Markup mode - Gateway receives payment, pays downstream with margin
+  - name: "paid-api-markup"
+    transport:
+      type: "http"
+      url: "https://paid-api.example.com/mcp"
+    namespace: "markup"
+    paymentMode: "markup"
+    markup: "20%"  # Add 20% markup on top of downstream price
+    # If downstream charges $0.10, gateway charges $0.12
+
+  # Example 3: Fixed markup - Add fixed amount to downstream price
+  - name: "paid-api-fixed-markup"
+    transport:
+      type: "http"
+      url: "https://paid-api.example.com/mcp"
+    namespace: "fixed"
+    paymentMode: "markup"
+    markup: "$0.01"  # Add $0.01 to downstream price
+    # If downstream charges $0.10, gateway charges $0.11
+
+settings:
+  logLevel: "debug"

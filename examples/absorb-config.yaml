@@ -1,0 +1,47 @@
+name: "MCP Gateway with Payment Absorption"
+version: "1.0.0"
+description: "Gateway pays all downstream costs using its own wallet (subscription model)"
+
+# Payment configuration
+payment:
+  enabled: true
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  network: "base-sepolia"
+
+  # Gateway's wallet for paying downstream APIs
+  outboundWallet: "0xYOUR_PRIVATE_KEY_HERE"  # Gateway pays downstream with this wallet
+
+  # API keys for client authentication (subscription model)
+  apiKeys:
+    - key: "eliza_premium_abc123"
+      tier: "premium"
+      rateLimit: 10000
+    - key: "eliza_basic_xyz789"
+      tier: "basic"
+      rateLimit: 100
+
+servers:
+  # Gateway absorbs all downstream costs
+  # Clients only pay gateway (via API key or x402)
+  # Gateway uses its own wallet to pay downstream APIs
+  - name: "expensive-api"
+    transport:
+      type: "http"
+      url: "https://paid-api.example.com/mcp"
+    namespace: "api"
+    paymentMode: "absorb"
+
+    # Tool-level pricing for clients
+    tools:
+      - name: "expensive-operation"
+        pricing:
+          apiKeyTiers:
+            basic: "$0.50"     # Client pays gateway $0.50
+            premium: "$0.25"   # Premium clients pay $0.25
+          x402: "$0.75"        # Pay-per-use without subscription
+
+    # Gateway pays downstream automatically from outboundWallet
+    # Downstream might charge $0.10, gateway absorbs the cost
+
+settings:
+  logLevel: "info"

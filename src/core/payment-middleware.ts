@@ -320,6 +320,68 @@ export class PaymentMiddleware {
   }
 
   /**
+   * Get payment mode for a server
+   */
+  getServerPaymentMode(serverId: string): 'passthrough' | 'markup' | 'absorb' | undefined {
+    const serverConfig = this.config.servers.find(s => s.name === serverId);
+    return serverConfig?.paymentMode;
+  }
+
+  /**
+   * Calculate markup amount based on downstream price
+   * @param downstreamPrice - Price from downstream API (e.g., "$0.01")
+   * @param markup - Markup configuration (e.g., "20%" or "$0.005")
+   * @returns Final price with markup applied
+   */
+  calculateMarkup(downstreamPrice: string, markup: string): string {
+    const downstreamValue = parseFloat(downstreamPrice.replace(/[^0-9.]/g, ''));
+
+    if (markup.includes('%')) {
+      // Percentage markup
+      const percentage = parseFloat(markup.replace('%', ''));
+      const markupValue = downstreamValue * (percentage / 100);
+      return `$${(downstreamValue + markupValue).toFixed(6)}`;
+    } else {
+      // Fixed amount markup
+      const markupValue = parseFloat(markup.replace(/[^0-9.]/g, ''));
+      return `$${(downstreamValue + markupValue).toFixed(6)}`;
+    }
+  }
+
+  /**
+   * Extract payment headers for forwarding (passthrough mode)
+   */
+  extractPaymentHeaders(headers?: Record<string, string>): Record<string, string> {
+    if (!headers) return {};
+
+    const paymentHeaders: Record<string, string> = {};
+
+    // Forward x402 payment headers
+    if (headers['x-payment']) {
+      paymentHeaders['x-payment'] = headers['x-payment'];
+    }
+    if (headers['X-Payment']) {
+      paymentHeaders['X-Payment'] = headers['X-Payment'];
+    }
+
+    // Forward API key headers
+    if (headers['x-eliza-api-key']) {
+      paymentHeaders['x-eliza-api-key'] = headers['x-eliza-api-key'];
+    }
+    if (headers['X-ELIZA-API-KEY']) {
+      paymentHeaders['X-ELIZA-API-KEY'] = headers['X-ELIZA-API-KEY'];
+    }
+    if (headers['authorization']) {
+      paymentHeaders['authorization'] = headers['authorization'];
+    }
+    if (headers['Authorization']) {
+      paymentHeaders['Authorization'] = headers['Authorization'];
+    }
+
+    return paymentHeaders;
+  }
+
+  /**
    * Get payment statistics
    */
   getStats() {
@@ -327,7 +389,8 @@ export class PaymentMiddleware {
       enabled: this.config.payment?.enabled || false,
       apiKeys: this.apiKeyCache.size,
       network: this.config.payment?.network,
-      recipient: this.config.payment?.recipient
+      recipient: this.config.payment?.recipient,
+      outboundWallet: this.config.payment?.outboundWallet ? 'configured' : 'not configured'
     };
   }
 }

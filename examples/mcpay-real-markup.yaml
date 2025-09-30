@@ -1,0 +1,73 @@
+name: "MCPay.tech Markup Gateway"
+version: "1.0.0"
+description: "Earn 30% margin by adding markup to mcpay.tech servers"
+
+# Gateway payment configuration
+payment:
+  enabled: true
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"  # Replace with YOUR wallet
+  network: "base-sepolia"  # Use 'base' for mainnet
+
+  # Wallet for paying downstream mcpay.tech servers
+  outboundWallet: "0xYOUR_PRIVATE_KEY_HERE"  # ⚠️ NEVER commit real keys to git!
+
+servers:
+  # Markup mode: Gateway earns 30% on every call
+  - name: "mcpay-server-1-markup"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/d67aaf0d-fcc8-4136-948d-c470abe41ac0"
+      headers:
+        "Content-Type": "application/json"
+    namespace: "mcpay1"
+    paymentMode: "markup"
+    markup: "30%"
+    enabled: false  # Enable after adding real wallet
+
+  - name: "mcpay-server-2-markup"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/a9ad1af3-f91a-468c-96e4-28ebdfdd36c3"
+    namespace: "mcpay2"
+    paymentMode: "markup"
+    markup: "30%"
+    enabled: false
+
+  - name: "mcpay-server-3-fixed-markup"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/dffdc161-66a8-44b4-9708-1040278ccf93"
+    namespace: "mcpay3"
+    paymentMode: "markup"
+    markup: "$0.01"  # Fixed $0.01 markup per call
+    enabled: false
+
+settings:
+  logLevel: "info"
+
+# REVENUE CALCULATION EXAMPLE:
+# If mcpay.tech charges $0.10 per call:
+#   - Client pays gateway: $0.13 (30% markup)
+#   - Gateway pays mcpay.tech: $0.10
+#   - Gateway profit: $0.03 per call
+#
+# With 10,000 calls/month: $300 monthly revenue!
+#
+# SETUP INSTRUCTIONS:
+# 1. Generate Ethereum wallet:
+#    import { privateKeyToAccount } from 'viem/accounts';
+#    import { generatePrivateKey } from 'viem/accounts';
+#
+# 2. Get testnet USDC from Base Sepolia faucet:
+#    https://www.coinbase.com/faucets/base-sepolia-faucet
+#
+# 3. Replace placeholders:
+#    - outboundWallet: Your private key (with 0x prefix)
+#    - recipient: Your receiving wallet address
+#
+# 4. Set enabled: true for servers you want to monetize
+#
+# 5. Test with testnet first, then switch to mainnet (network: "base")
+#
+# 6. Start gateway:
+#    bun run start --config=examples/mcpay-real-markup.yaml

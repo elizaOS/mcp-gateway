@@ -1,0 +1,54 @@
+name: "MCPay.tech Server Markup Gateway"
+version: "1.0.0"
+description: "Gateway adding 25% markup on mcpay.tech paid servers"
+
+payment:
+  enabled: true
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"  # Replace with your wallet
+  network: "base-sepolia"
+
+  # Your wallet for paying downstream mcpay.tech servers
+  outboundWallet: "0xYOUR_PRIVATE_KEY_HERE"  # NEVER commit real keys!
+
+servers:
+  # Markup mode: Gateway earns 25% on every call
+  - name: "mcpay-premium-api"
+    transport:
+      type: "http"
+      url: "https://api.mcpay.tech/premium"  # Replace with actual URL
+      headers:
+        "User-Agent": "MCP-Gateway/1.0"
+    namespace: "premium"
+    paymentMode: "markup"
+    markup: "25%"  # Gateway keeps 25% margin
+    enabled: false  # Enable when you have real URL
+
+  # Fixed markup example: Add $0.02 to every call
+  - name: "mcpay-basic-api"
+    transport:
+      type: "http"
+      url: "https://api.mcpay.tech/basic"  # Replace with actual URL
+    namespace: "basic"
+    paymentMode: "markup"
+    markup: "$0.02"  # Gateway keeps $0.02 per call
+    enabled: false
+
+settings:
+  logLevel: "info"
+
+# REVENUE EXAMPLE:
+# If mcpay.tech server charges $0.10 per call:
+#   - Client pays gateway: $0.125 (with 25% markup)
+#   - Gateway pays downstream: $0.10
+#   - Gateway profit: $0.025 per call
+#
+# With 10,000 calls/month: $250 monthly revenue!
+#
+# SETUP INSTRUCTIONS:
+# 1. Get testnet USDC: https://www.coinbase.com/faucets/base-sepolia-faucet
+# 2. Generate wallet: Use viem or any Ethereum wallet
+# 3. Replace outboundWallet with YOUR private key
+# 4. Replace recipient with YOUR receiving wallet address
+# 5. Get actual mcpay.tech server URLs from https://mcpay.tech/servers
+# 6. Set enabled: true
+# 7. Test with testnet before production!

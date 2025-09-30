@@ -60,7 +60,9 @@ const PaymentConfigSchema = z.object({
   recipient: z.string().optional(),
   network: z.string().default('base-sepolia'),
   facilitator: z.string().default('https://x402.org/facilitator'),
-  apiKeys: z.array(ApiKeyConfigSchema).optional()
+  apiKeys: z.array(ApiKeyConfigSchema).optional(),
+  // Outbound payment config (for paying downstream x402 APIs)
+  outboundWallet: z.string().optional() // Private key for paying downstream
 });
 
 export const McpServerConfigSchema = z.object({
@@ -76,7 +78,11 @@ export const McpServerConfigSchema = z.object({
   retryAttempts: z.number().default(3),
   retryDelay: z.number().default(1000),
   tools: z.array(ToolConfigSchema).optional(),
-  defaultPricing: ToolPricingSchema.optional()
+  defaultPricing: ToolPricingSchema.optional(),
+  // Outbound payment configuration
+  paymentMode: z.enum(['passthrough', 'markup', 'absorb']).optional(),
+  markup: z.string().optional(), // e.g., "20%" or "$0.01"
+  paymentWallet: z.string().optional() // Override wallet for this server
 });
 
 export const GatewayConfigSchema = z.object({

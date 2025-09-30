@@ -1,0 +1,47 @@
+name: "MCPay.tech Server Passthrough Gateway"
+version: "1.0.0"
+description: "Gateway demonstrating passthrough to paid x402 MCP servers from mcpay.tech"
+
+# Pure passthrough - no inbound payment required
+payment:
+  enabled: false
+
+servers:
+  # Example: Hypothetical paid documentation server
+  # Replace with actual mcpay.tech server URLs when available
+  - name: "mcpay-docs-server"
+    transport:
+      type: "http"
+      url: "https://api.mcpay.tech/docs"  # Replace with actual URL
+      headers:
+        "User-Agent": "MCP-Gateway/1.0"
+    namespace: "docs"
+    paymentMode: "passthrough"
+    enabled: false  # Disabled until real URL is configured
+
+  # Example: Hypothetical paid AI analysis server
+  - name: "mcpay-ai-server"
+    transport:
+      type: "http"
+      url: "https://api.mcpay.tech/ai"  # Replace with actual URL
+    namespace: "ai"
+    paymentMode: "passthrough"
+    enabled: false  # Disabled until real URL is configured
+
+  # Local free server for testing
+  - name: "user-review"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review"
+    enabled: true
+
+settings:
+  logLevel: "debug"
+  healthCheckInterval: 60000
+
+# INSTRUCTIONS TO USE WITH REAL MCPAY SERVERS:
+# 1. Visit https://mcpay.tech/servers
+# 2. Copy actual server URLs and replace the placeholder URLs above
+# 3. Set enabled: true for the servers you want to use
+# 4. Client must include X-PAYMENT header with valid x402 payment proof
+# 5. Gateway will forward payment headers to downstream servers

@@ -13,6 +13,7 @@ import {
 import { ServerManager } from './server-manager';
 import { GatewayRegistry } from './registry';
 import { PaymentMiddleware } from './payment-middleware';
+import { X402PaymentClient } from './x402-client';
 import { type GatewayConfig } from '../types/index';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
@@ -21,6 +22,7 @@ export class GatewayServer {
   private serverManager: ServerManager;
   private registry: GatewayRegistry;
   private paymentMiddleware?: PaymentMiddleware;
+  private x402Client?: X402PaymentClient;
   private config: GatewayConfig;
   private logger: Console;
   private healthCheckInterval?: NodeJS.Timeout;
@@ -37,6 +39,16 @@ export class GatewayServer {
       this.logger.info('Payment middleware enabled');
       const stats = this.paymentMiddleware.getStats();
       this.logger.info(`Payment config: network=${stats.network}, recipient=${stats.recipient}, apiKeys=${stats.apiKeys}`);
+    }
+
+    // Initialize x402 payment client for outbound payments
+    if (config.payment?.outboundWallet) {
+      try {
+        this.x402Client = new X402PaymentClient(config, logger);
+        this.logger.info(`X402 payment client enabled for outbound payments: ${this.x402Client.getWalletAddress()}`);
+      } catch (error) {
+        this.logger.error(`Failed to initialize x402 payment client: ${error}`);
+      }
     }
 
     this.server = new Server(

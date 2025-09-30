@@ -7,6 +7,7 @@ An MCP (Model Context Protocol) gateway that connects multiple MCP servers into 
 - **🔄 Multi-Server Gateway**: Connect to multiple MCP servers simultaneously
 - **🏷️ Namespace Support**: Automatic namespacing to prevent tool/resource conflicts
 - **💰 Payment Gating**: Monetize tools with x402 blockchain payments & API keys
+- **💸 x402 Passthrough**: Forward payments to paid APIs or add markup (earn 20-40% margin)
 - **📋 Configuration-Based**: YAML/JSON configuration files for easy server management
 - **💪 Health Monitoring**: Automatic health checks and connection management
 - **🛡️ Conflict Resolution**: Built-in conflict resolution for tools, resources, and prompts
@@ -244,7 +245,7 @@ bun run test:quick  # Fast, essential tests only
 bun run test:all    # Complete test suite
 ```
 
-See [TESTING.md](TESTING.md) for detailed testing guide.
+See [TESTING.md](docs/TESTING.md) for detailed testing guide.
 
 ## 📊 Example Output
 
@@ -271,45 +272,97 @@ Available tools with namespacing:
 
 ## 💰 Payment Gating & Monetization
 
-The gateway supports **payment-gated tools** to monetize your MCP services using:
-- **x402 Protocol**: Blockchain-based micropayments (gasless, instant, no minimum)
-- **ELIZA API Keys**: Traditional API key authentication with tiered pricing
+The gateway supports **bidirectional x402 payments**:
+- **Receive payments** from clients (API keys or x402)
+- **Make payments** to downstream x402-compatible APIs
+- **Three payment modes**: Passthrough, Markup, Absorb
 
-### Payment Configuration
+### Payment Modes
+
+1. **Passthrough** 🔄: Forward client payment headers directly to downstream APIs (zero-touch proxy)
+2. **Markup** 💰: Gateway receives payment, pays downstream with margin (e.g., 20% markup)
+3. **Absorb** 🎁: Gateway pays all downstream costs (subscription/membership model)
+
+### Basic Payment Configuration (Inbound Only)
 
 ```yaml
 payment:
   enabled: true
-  recipient: "0xYourEthereumAddress"    # Where payments are sent
-  network: "base-sepolia"                # base (mainnet) or base-sepolia (testnet)
-  facilitator: "https://x402.org/facilitator"
+  recipient: "0xYourEthereumAddress"
+  network: "base-sepolia"
 
   apiKeys:
     - key: "eliza_premium_abc123"
       tier: "premium"
-      rateLimit: 10000
-    - key: "eliza_basic_xyz789"
-      tier: "basic"
-      rateLimit: 100
 
 servers:
   - name: "context7"
     command: "npx"
     args: ["-y", "@upstash/context7-mcp"]
-    namespace: "docs"
-
-    # Per-tool pricing
     tools:
-      - name: "resolve-library-id"
-        pricing:
-          free: true
-
       - name: "get-library-docs"
         pricing:
-          x402: "$0.01"           # x402 payment required
+          x402: "$0.01"
           apiKeyTiers:
-            basic: "$0.005"       # 50% discount for basic tier
-            premium: "free"        # Free for premium tier
+            premium: "free"
+```
+
+### Passthrough Mode (Forward Client Payments)
+
+```yaml
+# No inbound payment needed - pure passthrough
+payment:
+  enabled: false
+
+servers:
+  - name: "paid-api"
+    transport:
+      type: "http"
+      url: "https://paid-api.example.com"
+    paymentMode: "passthrough"  # Forward payment headers directly
+```
+
+### Markup Mode (Gateway Earns Revenue)
+
+```yaml
+payment:
+  enabled: true
+  recipient: "0xYourWallet"
+  outboundWallet: "0xYourPrivateKey"  # For paying downstream
+
+servers:
+  - name: "paid-api"
+    transport:
+      type: "http"
+      url: "https://paid-api.example.com"
+    paymentMode: "markup"
+    markup: "20%"  # Add 20% on top of downstream price
+```
+
+### Absorb Mode (Subscription Model)
+
+```yaml
+payment:
+  enabled: true
+  recipient: "0xYourWallet"
+  outboundWallet: "0xYourPrivateKey"
+
+  apiKeys:
+    - key: "premium_key"
+      tier: "premium"
+
+servers:
+  - name: "expensive-api"
+    transport:
+      type: "http"
+      url: "https://expensive-api.com"
+    paymentMode: "absorb"
+    tools:
+      - name: "ai-analysis"
+        pricing:
+          apiKeyTiers:
+            premium: "free"  # Subscribers get unlimited
+          x402: "$5.00"      # Others pay per use
 ```
 
 ### How It Works
@@ -426,6 +479,7 @@ bun run start --config=examples/paid-config.yaml
 
 ### Learn More
 
+- **🔄 Passthrough Payment Guide**: [PASSTHROUGH_PAYMENT.md](docs/PASSTHROUGH_PAYMENT.md)
 - **x402 Protocol**: https://developers.cloudflare.com/agents/x402/
 - **x402 GitHub**: https://github.com/coinbase/x402
 - **MCP Specification**: https://modelcontextprotocol.io

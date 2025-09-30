@@ -1,0 +1,62 @@
+name: "MCPay.tech Real Servers Gateway"
+version: "1.0.0"
+description: "Gateway with real paid x402 MCP servers from mcpay.tech"
+
+# Mode 1: Pure passthrough - forward client payments directly
+payment:
+  enabled: false  # No gateway payment required
+
+servers:
+  # Real MCPay Servers (from https://mcpay.tech/servers)
+  - name: "mcpay-server-1"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/d67aaf0d-fcc8-4136-948d-c470abe41ac0"
+      headers:
+        "User-Agent": "MCP-Gateway/1.0"
+        "Content-Type": "application/json"
+    namespace: "mcpay1"
+    paymentMode: "passthrough"
+    enabled: true
+
+  - name: "mcpay-server-2"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/a9ad1af3-f91a-468c-96e4-28ebdfdd36c3"
+    namespace: "mcpay2"
+    paymentMode: "passthrough"
+    enabled: true
+
+  - name: "mcpay-server-3"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/dffdc161-66a8-44b4-9708-1040278ccf93"
+    namespace: "mcpay3"
+    paymentMode: "passthrough"
+    enabled: true
+
+  - name: "mcpay-server-4"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/9a414356-43a0-43e5-a38f-c0d89a27b28b"
+    namespace: "mcpay4"
+    paymentMode: "passthrough"
+    enabled: true
+
+  - name: "mcpay-server-5"
+    transport:
+      type: "http"
+      url: "https://mcpay.tech/mcp/840afe73-66eb-42df-b1c7-b86ee975b4a7"
+    namespace: "mcpay5"
+    paymentMode: "passthrough"
+    enabled: true
+
+settings:
+  logLevel: "debug"
+  healthCheckInterval: 60000
+
+# USAGE:
+# 1. Start gateway: bun run start --config=examples/mcpay-real-servers.yaml
+# 2. Client must include X-PAYMENT header with x402 payment proof
+# 3. Gateway forwards payment headers to mcpay.tech servers
+# 4. No gateway wallet needed - pure passthrough mode

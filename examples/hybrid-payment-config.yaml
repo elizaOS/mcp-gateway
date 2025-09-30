@@ -1,0 +1,59 @@
+name: "Hybrid Payment Gateway"
+version: "1.0.0"
+description: "Mix of payment modes: some servers passthrough, others with markup or absorption"
+
+payment:
+  enabled: true
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  network: "base-sepolia"
+  outboundWallet: "0xYOUR_PRIVATE_KEY_HERE"
+
+  apiKeys:
+    - key: "eliza_premium_abc123"
+      tier: "premium"
+      rateLimit: 10000
+
+servers:
+  # Free local server (no payment)
+  - name: "local-free-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review"
+
+  # Passthrough mode: Forward client payments directly
+  - name: "passthrough-api"
+    transport:
+      type: "http"
+      url: "https://paid-api-1.example.com"
+    namespace: "pass"
+    paymentMode: "passthrough"
+    # Client pays downstream directly, gateway just routes
+
+  # Markup mode: Gateway adds 25% on top
+  - name: "markup-api"
+    transport:
+      type: "http"
+      url: "https://paid-api-2.example.com"
+    namespace: "markup"
+    paymentMode: "markup"
+    markup: "25%"
+    # If downstream charges $0.10, client pays $0.125 to gateway
+
+  # Absorb mode: Gateway pays downstream, charges clients differently
+  - name: "premium-api"
+    transport:
+      type: "http"
+      url: "https://expensive-api.example.com"
+    namespace: "premium"
+    paymentMode: "absorb"
+    tools:
+      - name: "ai-analysis"
+        pricing:
+          apiKeyTiers:
+            premium: "free"  # Premium users get it free
+          x402: "$1.00"      # Others pay $1.00
+    # Gateway might pay downstream $0.20, but charges $1.00 or free
+
+settings:
+  logLevel: "info"
+  healthCheckInterval: 60000
