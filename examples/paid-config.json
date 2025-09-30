@@ -1,0 +1,72 @@
+{
+  "name": "Paid MCP Gateway",
+  "version": "1.0.0",
+  "description": "Monetized gateway with x402 blockchain payments and ELIZA API key authentication",
+  "payment": {
+    "enabled": true,
+    "recipient": "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb",
+    "network": "base-sepolia",
+    "facilitator": "https://x402.org/facilitator",
+    "apiKeys": [
+      {
+        "key": "eliza_premium_abc123def456",
+        "tier": "premium",
+        "rateLimit": 10000
+      },
+      {
+        "key": "eliza_basic_xyz789uvw012",
+        "tier": "basic",
+        "rateLimit": 100
+      }
+    ]
+  },
+  "servers": [
+    {
+      "name": "context7",
+      "command": "npx",
+      "args": ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_CONTEXT7_API_KEY"],
+      "namespace": "docs",
+      "enabled": true,
+      "tools": [
+        {
+          "name": "resolve-library-id",
+          "pricing": {
+            "free": true
+          }
+        },
+        {
+          "name": "get-library-docs",
+          "pricing": {
+            "x402": "$0.01",
+            "apiKeyTiers": {
+              "basic": "$0.005",
+              "premium": "free"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "user-review",
+      "command": "npx",
+      "args": ["-y", "user-review-mcp"],
+      "namespace": "review",
+      "enabled": true,
+      "defaultPricing": {
+        "x402": "$0.02",
+        "apiKeyTiers": {
+          "basic": "$0.01",
+          "premium": "$0.005"
+        }
+      }
+    }
+  ],
+  "settings": {
+    "enableToolConflictResolution": true,
+    "enableResourceConflictResolution": true,
+    "enablePromptConflictResolution": true,
+    "logLevel": "info",
+    "maxConcurrentConnections": 10,
+    "healthCheckInterval": 60000
+  }
+}

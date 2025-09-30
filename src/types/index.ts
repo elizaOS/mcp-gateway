@@ -37,6 +37,32 @@ const TransportConfigSchema = z.discriminatedUnion('type', [
   WebSocketTransportSchema
 ]);
 
+// Payment configuration schemas
+const ToolPricingSchema = z.object({
+  free: z.boolean().optional(),
+  x402: z.string().optional(),
+  apiKeyTiers: z.record(z.string()).optional()
+});
+
+const ToolConfigSchema = z.object({
+  name: z.string(),
+  pricing: ToolPricingSchema.optional()
+});
+
+const ApiKeyConfigSchema = z.object({
+  key: z.string(),
+  tier: z.string(),
+  rateLimit: z.number().optional()
+});
+
+const PaymentConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  recipient: z.string().optional(),
+  network: z.string().default('base-sepolia'),
+  facilitator: z.string().default('https://x402.org/facilitator'),
+  apiKeys: z.array(ApiKeyConfigSchema).optional()
+});
+
 export const McpServerConfigSchema = z.object({
   name: z.string(),
   transport: TransportConfigSchema.optional(),
@@ -48,7 +74,9 @@ export const McpServerConfigSchema = z.object({
   enabled: z.boolean().default(true),
   timeout: z.number().default(30000),
   retryAttempts: z.number().default(3),
-  retryDelay: z.number().default(1000)
+  retryDelay: z.number().default(1000),
+  tools: z.array(ToolConfigSchema).optional(),
+  defaultPricing: ToolPricingSchema.optional()
 });
 
 export const GatewayConfigSchema = z.object({
@@ -56,6 +84,7 @@ export const GatewayConfigSchema = z.object({
   version: z.string().default('1.0.0'),
   description: z.string().optional(),
   servers: z.array(McpServerConfigSchema),
+  payment: PaymentConfigSchema.optional(),
   settings: z.object({
     enableToolConflictResolution: z.boolean().default(true),
     enableResourceConflictResolution: z.boolean().default(true),
@@ -69,6 +98,10 @@ export const GatewayConfigSchema = z.object({
 export type TransportConfig = z.infer<typeof TransportConfigSchema>;
 export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
 export type GatewayConfig = z.infer<typeof GatewayConfigSchema>;
+export type ToolPricing = z.infer<typeof ToolPricingSchema>;
+export type ToolConfig = z.infer<typeof ToolConfigSchema>;
+export type ApiKeyConfig = z.infer<typeof ApiKeyConfigSchema>;
+export type PaymentConfig = z.infer<typeof PaymentConfigSchema>;
 
 import type { Client } from '@modelcontextprotocol/sdk/client/index.js';
 

@@ -12,6 +12,7 @@ import {
 
 import { ServerManager } from './server-manager';
 import { GatewayRegistry } from './registry';
+import { PaymentMiddleware } from './payment-middleware';
 import { type GatewayConfig } from '../types/index';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 
@@ -19,6 +20,7 @@ export class GatewayServer {
   private server: Server;
   private serverManager: ServerManager;
   private registry: GatewayRegistry;
+  private paymentMiddleware?: PaymentMiddleware;
   private config: GatewayConfig;
   private logger: Console;
   private healthCheckInterval?: NodeJS.Timeout;
@@ -28,6 +30,14 @@ export class GatewayServer {
     this.logger = logger;
     this.serverManager = new ServerManager(logger);
     this.registry = new GatewayRegistry(config, logger);
+
+    // Initialize payment middleware if enabled
+    if (config.payment?.enabled) {
+      this.paymentMiddleware = new PaymentMiddleware(config, logger);
+      this.logger.info('Payment middleware enabled');
+      const stats = this.paymentMiddleware.getStats();
+      this.logger.info(`Payment config: network=${stats.network}, recipient=${stats.recipient}, apiKeys=${stats.apiKeys}`);
+    }
 
     this.server = new Server(
       {
@@ -60,13 +70,57 @@ export class GatewayServer {
 
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
       const { name, arguments: args } = request.params;
-      
+
       const tool = this.registry.findTool(name);
       if (!tool) {
         throw new McpError(
           ErrorCode.MethodNotFound,
           `Tool '${name}' not found`
         );
+      }
+
+      // Payment verification
+      if (this.paymentMiddleware) {
+        try {
+          // Extract headers from request metadata (MCP clients can pass custom metadata)
+          const headers = (request.params as any)._meta?.headers || {};
+
+          const verification = await this.paymentMiddleware.verifyPayment(
+            tool.originalName,
+            tool.serverId,
+            headers
+          );
+
+          if (!verification.authorized) {
+            // Generate 402 Payment Required response
+            const paymentRequirements = this.paymentMiddleware.generatePaymentRequiredResponse(
+              tool.originalName,
+              tool.serverId
+            );
+
+            this.logger.warn(`Payment required for tool '${name}': ${verification.error}`);
+
+            throw new McpError(
+              ErrorCode.InvalidRequest,
+              `Payment Required: ${JSON.stringify(paymentRequirements)}`
+            );
+          }
+
+          // Log successful payment
+          this.logger.info(
+            `Payment verified for ${name}: method=${verification.pricing?.method}, amount=${verification.pricing?.amount}`
+          );
+
+        } catch (error) {
+          if (error instanceof McpError) {
+            throw error;
+          }
+          this.logger.error(`Payment verification error for ${name}: ${error}`);
+          throw new McpError(
+            ErrorCode.InternalError,
+            `Payment verification failed: ${error}`
+          );
+        }
       }
 
       const connection = this.serverManager.getConnection(tool.serverId);

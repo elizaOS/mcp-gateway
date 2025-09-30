@@ -6,6 +6,7 @@ An MCP (Model Context Protocol) gateway that connects multiple MCP servers into 
 
 - **🔄 Multi-Server Gateway**: Connect to multiple MCP servers simultaneously
 - **🏷️ Namespace Support**: Automatic namespacing to prevent tool/resource conflicts
+- **💰 Payment Gating**: Monetize tools with x402 blockchain payments & API keys
 - **📋 Configuration-Based**: YAML/JSON configuration files for easy server management
 - **💪 Health Monitoring**: Automatic health checks and connection management
 - **🛡️ Conflict Resolution**: Built-in conflict resolution for tools, resources, and prompts
@@ -257,20 +258,185 @@ Available tools with namespacing:
 - `docs:get-library-docs` (Context7) 
 - `review:get-user-review` (User Review MCP)
 
+## 💰 Payment Gating & Monetization
+
+The gateway supports **payment-gated tools** to monetize your MCP services using:
+- **x402 Protocol**: Blockchain-based micropayments (gasless, instant, no minimum)
+- **ELIZA API Keys**: Traditional API key authentication with tiered pricing
+
+### Payment Configuration
+
+```yaml
+payment:
+  enabled: true
+  recipient: "0xYourEthereumAddress"    # Where payments are sent
+  network: "base-sepolia"                # base (mainnet) or base-sepolia (testnet)
+  facilitator: "https://x402.org/facilitator"
+
+  apiKeys:
+    - key: "eliza_premium_abc123"
+      tier: "premium"
+      rateLimit: 10000
+    - key: "eliza_basic_xyz789"
+      tier: "basic"
+      rateLimit: 100
+
+servers:
+  - name: "context7"
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp"]
+    namespace: "docs"
+
+    # Per-tool pricing
+    tools:
+      - name: "resolve-library-id"
+        pricing:
+          free: true
+
+      - name: "get-library-docs"
+        pricing:
+          x402: "$0.01"           # x402 payment required
+          apiKeyTiers:
+            basic: "$0.005"       # 50% discount for basic tier
+            premium: "free"        # Free for premium tier
+```
+
+### How It Works
+
+**1. Free Access (No Payment)**
+```yaml
+tools:
+  - name: "my-tool"
+    pricing:
+      free: true
+```
+
+**2. x402 Blockchain Payments**
+- Client sends payment proof in `X-PAYMENT` header
+- Gateway verifies payment with x402 facilitator
+- Instant, gasless, $0.001 minimum payment
+- No account or credit card needed
+
+**3. API Key Authentication**
+```bash
+# Client sends API key
+curl -H "X-ELIZA-API-KEY: eliza_premium_abc123" \
+  http://gateway/mcp/tool
+```
+
+**4. Tiered Pricing**
+```yaml
+pricing:
+  x402: "$0.10"              # Default price
+  apiKeyTiers:
+    basic: "$0.05"           # 50% off for basic
+    premium: "free"          # Free for premium
+```
+
+### Client Integration
+
+**Using x402 (Blockchain Payments):**
+```typescript
+import { privateKeyToAccount } from 'viem/accounts';
+import { withPaymentInterceptor } from 'x402-axios';
+
+const account = privateKeyToAccount('0xYourPrivateKey');
+const client = withPaymentInterceptor(axios.create(), account);
+
+// Payments happen automatically on 402 responses
+await client.post('/mcp/tool', { args: {} });
+```
+
+**Using API Keys:**
+```bash
+# In Claude Desktop config
+{
+  "mcpServers": {
+    "paid-gateway": {
+      "command": "npx",
+      "args": ["-y", "mcp-gateway", "--config", "paid-config.yaml"],
+      "env": {
+        "ELIZA_API_KEY": "eliza_premium_abc123"
+      }
+    }
+  }
+}
+```
+
+### Revenue Model Examples
+
+**Example 1: Freemium Model**
+```yaml
+tools:
+  - name: "basic-search"
+    pricing:
+      free: true
+  - name: "advanced-search"
+    pricing:
+      x402: "$0.05"
+      apiKeyTiers:
+        premium: "free"
+```
+
+**Example 2: Pay-Per-Use**
+```yaml
+defaultPricing:
+  x402: "$0.01"  # All tools cost $0.01 per call
+```
+
+**Example 3: Subscription via API Keys**
+```yaml
+apiKeys:
+  - key: "monthly_subscriber_key"
+    tier: "subscriber"
+defaultPricing:
+  apiKeyTiers:
+    subscriber: "free"  # Subscribers get everything free
+```
+
+### Testing Payments
+
+**1. Testnet (Free Testing):**
+```yaml
+payment:
+  network: "base-sepolia"
+  recipient: "0xYourTestAddress"
+```
+Get free testnet USDC from [Base Sepolia Faucet](https://www.coinbase.com/faucets/base-sepolia-faucet)
+
+**2. Example Configs:**
+- [`examples/paid-config.yaml`](examples/paid-config.yaml) - Full payment setup
+- [`examples/paid-config.json`](examples/paid-config.json) - JSON format
+
+**3. Run with Payment:**
+```bash
+bun run start --config=examples/paid-config.yaml
+```
+
+### Learn More
+
+- **x402 Protocol**: https://developers.cloudflare.com/agents/x402/
+- **x402 GitHub**: https://github.com/coinbase/x402
+- **MCP Specification**: https://modelcontextprotocol.io
+
 ## 🏗️ Architecture
 
 ```mermaid
 graph TB
     Client[MCP Client] --> Gateway[Eliza MCP Gateway]
+    Gateway --> Payment[Payment Middleware]
     Gateway --> Registry[Unified Registry]
     Gateway --> Manager[Server Manager]
-    
+
+    Payment --> x402[x402 Facilitator]
+    Payment --> APIKeys[API Key Validation]
+
     Manager --> Server1[Context7 MCP]
     Manager --> Server2[User Review MCP]
     Manager --> Server3[Other MCP Servers]
-    
+
     Registry --> Tools[Aggregated Tools]
-    Registry --> Resources[Aggregated Resources]  
+    Registry --> Resources[Aggregated Resources]
     Registry --> Prompts[Aggregated Prompts]
 ```
 

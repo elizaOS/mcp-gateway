@@ -1,0 +1,98 @@
+# Paid MCP Gateway Configuration Example
+# This configuration demonstrates how to monetize MCP tools using x402 payments and API keys
+
+name: "Paid MCP Gateway"
+version: "1.0.0"
+description: "Monetized gateway with x402 blockchain payments and ELIZA API key authentication"
+
+# Payment Configuration
+payment:
+  enabled: true
+
+  # Ethereum address where payments will be sent
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+
+  # Blockchain network (use "base" for mainnet, "base-sepolia" for testnet)
+  network: "base-sepolia"
+
+  # x402 facilitator URL (handles gasless transactions)
+  facilitator: "https://x402.org/facilitator"
+
+  # API Key Configuration (alternative to x402 payments)
+  apiKeys:
+    # Premium tier - gets free access to most tools
+    - key: "eliza_premium_abc123def456"
+      tier: "premium"
+      rateLimit: 10000  # requests per hour
+
+    # Basic tier - gets discounted pricing
+    - key: "eliza_basic_xyz789uvw012"
+      tier: "basic"
+      rateLimit: 100
+
+    # Developer tier - for testing
+    - key: "eliza_dev_test123456789"
+      tier: "developer"
+      rateLimit: 50
+
+# MCP Servers Configuration
+servers:
+  # Context7 - Up-to-date library documentation
+  - name: "context7"
+    command: "npx"
+    args: ["-y", "@upstash/context7-mcp", "--api-key", "YOUR_CONTEXT7_API_KEY"]
+    namespace: "docs"
+    enabled: true
+
+    # Per-tool pricing configuration
+    tools:
+      # Free tool - no payment required
+      - name: "resolve-library-id"
+        pricing:
+          free: true
+
+      # Paid tool with tiered pricing
+      - name: "get-library-docs"
+        pricing:
+          x402: "$0.01"           # Default price via x402 payment
+          apiKeyTiers:
+            basic: "$0.005"       # 50% discount for basic tier
+            premium: "free"       # Free for premium tier
+            developer: "$0.001"   # 90% discount for developers
+
+  # User Review MCP - Code review feedback
+  - name: "user-review"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "review"
+    enabled: true
+
+    # Default pricing for ALL tools from this server
+    defaultPricing:
+      x402: "$0.02"
+      apiKeyTiers:
+        basic: "$0.01"
+        premium: "$0.005"
+        developer: "free"
+
+  # Example: Filesystem server (disabled by default)
+  - name: "filesystem"
+    command: "npx"
+    args: ["-y", "@modelcontextprotocol/server-filesystem", "/Users/yourname/Documents"]
+    namespace: "fs"
+    enabled: false
+
+    # High-value tools with premium pricing
+    defaultPricing:
+      x402: "$0.05"
+      apiKeyTiers:
+        premium: "$0.01"
+
+# Gateway Settings
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 10
+  healthCheckInterval: 60000
