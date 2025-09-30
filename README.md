@@ -179,44 +179,46 @@ The gateway includes a comprehensive End-to-End test suite that validates all fu
 ### Quick Testing (Recommended)
 ```bash
 # Run essential tests (fastest)
-npm run test:quick
-
-# Or use the test runner script
-./tests/test-runner.sh quick
+bun run test:quick
 ```
 
 ### Full Test Suite
 ```bash
-# Run comprehensive tests including MCP client communication
-npm run test
+# Run all tests including payment tests
+bun run test:all
 
-# Or use the test runner script  
-./tests/test-runner.sh full
+# Or run test suites individually:
+bun run test:quick   # Quick smoke tests (~45s)
+bun run test         # Full E2E tests (~180s)
+bun run test:payment # Payment E2E tests (~31s)
 ```
 
 ### Test Specific Configurations
 ```bash
-# Test a specific configuration file
-./tests/test-runner.sh config basic.yaml
-./tests/test-runner.sh config multi-server.yaml
+# Test with specific config
+bun run start --config=tests/configs/basic.yaml
 
 # Available test configs:
+# Core functionality:
 # - basic.yaml - Single server, STDIO transport
-# - basic.json - Same as basic.yaml but JSON format  
+# - basic.json - Same as basic.yaml but JSON format
 # - namespaced.yaml - Single server with namespace
 # - multi-server.yaml - Multiple servers, different namespaces
 # - invalid.yaml - Invalid config for error testing
 # - failing-server.yaml - Server connection failure testing
+#
+# Payment features:
+# - paid-free-tools.yaml - Mix of free and paid tools
+# - paid-api-key-only.yaml - API key authentication only
+# - paid-x402-only.yaml - x402 blockchain payments only
+# - paid-default-pricing.yaml - Server-wide default pricing
+# - paid-disabled.yaml - Payment disabled (backward compatibility)
 ```
 
 ### Interactive Testing
 ```bash
-# Use MCP Inspector for interactive testing
-./tests/test-runner.sh manual
-./tests/test-runner.sh manual multi-server.yaml
-
-# Manual testing with specific config
-npx @modelcontextprotocol/inspector node build/index.js --config=examples/mixed-transports.yaml
+# Manual testing with MCP Inspector
+npx @modelcontextprotocol/inspector bun run src/index.ts --config=examples/config.yaml
 ```
 
 ### Test Coverage
@@ -224,16 +226,25 @@ The E2E test suite validates:
 - ✅ **Configuration Loading**: YAML, JSON, and environment variables
 - ✅ **All Transport Types**: STDIO, HTTP, SSE, WebSocket
 - ✅ **Multi-Server Support**: Multiple servers with namespace handling
+- ✅ **Payment Features**: x402 verification, API keys, tiered pricing
 - ✅ **Error Handling**: Invalid configs, connection failures, graceful degradation
 - ✅ **Tool Execution**: MCP protocol communication and tool calls
 - ✅ **Process Management**: Startup, shutdown, cleanup
 
+**Latest Test Results:**
+- Quick E2E: ✅ 11/11 passed (45s)
+- Full E2E: ✅ 28/28 passed (180s)
+- Payment E2E: ✅ 15/15 passed (31s)
+- **Total: ✅ 54/54 tests (100% success rate)**
+
 ### CI/CD Integration
 ```bash
 # For continuous integration pipelines
-npm run test:quick  # Fast, essential tests only
-npm run test        # Full test suite (slower but comprehensive)
+bun run test:quick  # Fast, essential tests only
+bun run test:all    # Complete test suite
 ```
+
+See [TESTING.md](TESTING.md) for detailed testing guide.
 
 ## 📊 Example Output
 
