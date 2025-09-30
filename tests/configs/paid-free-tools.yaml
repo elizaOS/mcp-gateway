@@ -1,0 +1,49 @@
+# Test Config: Mix of Free and Paid Tools
+# Tests payment middleware with mixed pricing strategies
+
+name: "Test Gateway - Free and Paid Tools"
+version: "1.0.0"
+
+payment:
+  enabled: true
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  network: "base-sepolia"
+  facilitator: "https://x402.org/facilitator"
+
+  apiKeys:
+    - key: "test_premium_key_12345"
+      tier: "premium"
+      rateLimit: 1000
+    - key: "test_basic_key_67890"
+      tier: "basic"
+      rateLimit: 100
+
+servers:
+  - name: "test-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "test"
+    enabled: true
+
+    tools:
+      # Free tool - accessible without payment
+      - name: "free-tool"
+        pricing:
+          free: true
+
+      # Paid tool - requires x402 payment
+      - name: "paid-tool"
+        pricing:
+          x402: "$0.01"
+
+      # Tiered tool - different prices per tier
+      - name: "tiered-tool"
+        pricing:
+          x402: "$0.05"
+          apiKeyTiers:
+            basic: "$0.02"
+            premium: "free"
+
+settings:
+  logLevel: "debug"
+  enableToolConflictResolution: true

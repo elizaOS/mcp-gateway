@@ -9,7 +9,9 @@
     "dev": "bun run src/index.ts",
     "type-check": "tsc --noEmit",
     "test": "bun run tests/e2e-test.ts",
-    "test:quick": "bun run tests/e2e-simple.ts"
+    "test:quick": "bun run tests/e2e-simple.ts",
+    "test:payment": "bun run tests/e2e-payment.ts",
+    "test:all": "bun run test:quick && bun run test && bun run test:payment"
   },
   "keywords": ["mcp", "gateway", "aggregator", "server", "proxy", "model-context-protocol"],
   "author": "MCP Gateway",

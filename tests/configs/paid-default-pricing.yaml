@@ -1,0 +1,51 @@
+# Test Config: Server-wide Default Pricing
+# Tests payment middleware with default pricing applied to all tools
+
+name: "Test Gateway - Default Pricing"
+version: "1.0.0"
+
+payment:
+  enabled: true
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  network: "base-sepolia"
+  facilitator: "https://x402.org/facilitator"
+
+  apiKeys:
+    - key: "test_enterprise_key_999"
+      tier: "enterprise"
+      rateLimit: 100000
+
+servers:
+  # Server with default pricing - applies to ALL tools
+  - name: "default-pricing-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "default"
+    enabled: true
+
+    defaultPricing:
+      x402: "$0.10"
+      apiKeyTiers:
+        enterprise: "free"
+
+  # Server with default + specific overrides
+  - name: "mixed-pricing-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "mixed"
+    enabled: true
+
+    defaultPricing:
+      x402: "$0.05"
+
+    tools:
+      # This tool overrides default pricing
+      - name: "special-tool"
+        pricing:
+          x402: "$0.50"
+
+      # This tool uses default pricing
+      # (no tool config = default applies)
+
+settings:
+  logLevel: "debug"

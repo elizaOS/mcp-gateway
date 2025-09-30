@@ -31,6 +31,9 @@ jobs:
     - name: Run full E2E tests
       run: bun run tests/e2e-test.ts
 
+    - name: Run payment E2E tests
+      run: bun run tests/e2e-payment.ts
+
     - name: Smoke: config loading with Bun
       run: |
         timeout 10s bun run src/index.ts --config=tests/configs/basic.yaml || true
@@ -39,3 +42,8 @@ jobs:
     - name: Smoke: env config with Bun
       run: |
         timeout 10s env MCP_SERVERS="test:npx:user-review-mcp" bun run src/index.ts || true
+
+    - name: Smoke: payment configs
+      run: |
+        timeout 10s bun run src/index.ts --config=tests/configs/paid-free-tools.yaml || true
+        timeout 10s bun run src/index.ts --config=tests/configs/paid-disabled.yaml || true

@@ -1,0 +1,29 @@
+# Test Config: Payment Disabled (Backward Compatibility)
+# Tests that gateway works normally when payment is disabled
+
+name: "Test Gateway - Payment Disabled"
+version: "1.0.0"
+
+# Payment config present but explicitly disabled
+payment:
+  enabled: false
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  network: "base-sepolia"
+
+servers:
+  - name: "free-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "free"
+    enabled: true
+
+    # These pricing configs should be ignored when payment is disabled
+    tools:
+      - name: "should-be-free"
+        pricing:
+          x402: "$1000.00"  # This should be ignored
+          apiKeyTiers:
+            premium: "$500.00"  # This should be ignored
+
+settings:
+  logLevel: "info"

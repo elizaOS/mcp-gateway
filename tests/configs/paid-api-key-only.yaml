@@ -1,0 +1,51 @@
+# Test Config: API Key Authentication Only
+# Tests payment middleware with only API key authentication (no x402)
+
+name: "Test Gateway - API Key Only"
+version: "1.0.0"
+
+payment:
+  enabled: true
+  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  network: "base-sepolia"
+
+  apiKeys:
+    - key: "test_premium_abc123"
+      tier: "premium"
+      rateLimit: 10000
+    - key: "test_basic_xyz789"
+      tier: "basic"
+      rateLimit: 100
+    - key: "test_developer_dev000"
+      tier: "developer"
+      rateLimit: 50
+
+servers:
+  - name: "api-key-server"
+    command: "npx"
+    args: ["-y", "user-review-mcp"]
+    namespace: "apikey"
+    enabled: true
+
+    # All tools use API key tiers only (no x402)
+    tools:
+      - name: "premium-only"
+        pricing:
+          apiKeyTiers:
+            premium: "free"
+
+      - name: "basic-and-above"
+        pricing:
+          apiKeyTiers:
+            basic: "$0.01"
+            premium: "free"
+
+      - name: "all-tiers"
+        pricing:
+          apiKeyTiers:
+            developer: "$0.10"
+            basic: "$0.05"
+            premium: "$0.01"
+
+settings:
+  logLevel: "debug"
