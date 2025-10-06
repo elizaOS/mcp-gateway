@@ -22,14 +22,47 @@ export class TransportFactory {
         } as { command: string; args?: string[]; env?: Record<string, string>; cwd?: string };
         return new StdioClientTransport(stdioParams) as unknown as Transport;
       }
-      case 'http':
+      case 'http': {
+        const httpHeaders: Record<string, string> = {};
+
+        // Add API key if provided
+        if (transportConfig.apiKey) {
+          httpHeaders['X-API-Key'] = transportConfig.apiKey;
+        }
+
+        // Merge custom headers
+        if (transportConfig.headers) {
+          Object.assign(httpHeaders, transportConfig.headers);
+        }
+
         return new StreamableHTTPClientTransport(
-          new URL(transportConfig.url)
+          new URL(transportConfig.url),
+          Object.keys(httpHeaders).length > 0 ? {
+            requestInit: { headers: httpHeaders }
+          } : undefined
         ) as unknown as Transport;
-      case 'sse':
+      }
+      case 'sse': {
+        const sseHeaders: Record<string, string> = {};
+
+        // Add API key if provided
+        if (transportConfig.apiKey) {
+          sseHeaders['X-API-Key'] = transportConfig.apiKey;
+        }
+
+        // Merge custom headers
+        if (transportConfig.headers) {
+          Object.assign(sseHeaders, transportConfig.headers);
+        }
+
         return new SSEClientTransport(
-          new URL(transportConfig.sseUrl)
+          new URL(transportConfig.sseUrl),
+          Object.keys(sseHeaders).length > 0 ? {
+            eventSourceInit: { headers: sseHeaders },
+            requestInit: { headers: sseHeaders }
+          } : undefined
         ) as unknown as Transport;
+      }
       case 'websocket':
         return new WebSocketClientTransport(
           new URL(transportConfig.url)
