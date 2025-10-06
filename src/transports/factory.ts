@@ -54,7 +54,6 @@ export class TransportFactory {
         return new SSEClientTransport(
           new URL(transportConfig.sseUrl),
           Object.keys(sseHeaders).length > 0 ? {
-            eventSourceInit: { headers: sseHeaders },
             requestInit: { headers: sseHeaders }
           } : undefined
         ) as unknown as Transport;
