@@ -1,0 +1,29 @@
+name: "CoinGecko MCP Gateway (Free)"
+version: "1.0.0"
+description: "Gateway with CoinGecko MCP server - FREE for testing"
+
+# Payment Configuration - DISABLED for testing
+payment:
+  enabled: false
+
+# MCP Servers Configuration
+servers:
+  # CoinGecko MCP Server via SSE (FREE API)
+  - name: "coingecko"
+    transport:
+      type: "sse"
+      sseUrl: "https://mcp.api.coingecko.com/sse"
+      postUrl: "https://mcp.api.coingecko.com/message"
+      headers:
+        "User-Agent": "MCP-Gateway/1.0"
+    namespace: "crypto"
+    enabled: true
+
+# Gateway Settings
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 10
+  healthCheckInterval: 60000

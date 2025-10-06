@@ -1,0 +1,28 @@
+{
+  "name": "mcp-gateway-example-agents",
+  "version": "1.0.0",
+  "description": "Example AI agents using the MCP Gateway",
+  "type": "module",
+  "scripts": {
+    "ai16z": "bun run ai16z-price-agent.ts",
+    "ai16z:sse": "bun run ai16z-price-agent-sse.ts",
+    "ai16z:x402": "bun run ai16z-price-agent-x402.ts",
+    "gateway:sse": "./run-gateway-sse.sh",
+    "generate-wallet": "bun run generate-wallet.ts"
+  },
+  "dependencies": {
+    "@ai-sdk/openai": "^2.0.42",
+    "@anthropic-ai/sdk": "^0.65.0",
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "ai": "^5.0.60",
+    "axios": "^1.7.9",
+    "viem": "^2.21.45",
+    "x402-axios": "^0.6.0",
+    "x402-fetch": "^0.6.6",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.6.0",
+    "typescript": "^5.7.0"
+  }
+}
