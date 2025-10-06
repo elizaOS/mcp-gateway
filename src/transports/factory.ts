@@ -25,12 +25,10 @@ export class TransportFactory {
       case 'http': {
         const httpHeaders: Record<string, string> = {};
 
-        // Add API key if provided
         if (transportConfig.apiKey) {
           httpHeaders['X-API-Key'] = transportConfig.apiKey;
         }
 
-        // Merge custom headers
         if (transportConfig.headers) {
           Object.assign(httpHeaders, transportConfig.headers);
         }
@@ -45,12 +43,10 @@ export class TransportFactory {
       case 'sse': {
         const sseHeaders: Record<string, string> = {};
 
-        // Add API key if provided
         if (transportConfig.apiKey) {
           sseHeaders['X-API-Key'] = transportConfig.apiKey;
         }
 
-        // Merge custom headers
         if (transportConfig.headers) {
           Object.assign(sseHeaders, transportConfig.headers);
         }
