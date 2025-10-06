@@ -9,12 +9,15 @@ export class ConfigManager {
     try {
       const fileContent = readFileSync(filePath, 'utf-8');
       
+      // Substitute environment variables in the content
+      const processedContent = this.substituteEnvVars(fileContent);
+      
       let rawConfig: unknown;
       
       if (filePath.endsWith('.yaml') || filePath.endsWith('.yml')) {
-        rawConfig = parseYAML(fileContent);
+        rawConfig = parseYAML(processedContent);
       } else {
-        rawConfig = JSON.parse(fileContent);
+        rawConfig = JSON.parse(processedContent);
       }
 
       this.config = GatewayConfigSchema.parse(rawConfig);
@@ -24,6 +27,27 @@ export class ConfigManager {
     } catch (error) {
       throw new Error(`Failed to load config from ${filePath}: ${error}`);
     }
+  }
+
+  /**
+   * Substitute environment variables in config content
+   * Supports ${VAR_NAME} and ${VAR_NAME:-default} syntax
+   */
+  private substituteEnvVars(content: string): string {
+    return content.replace(/\$\{([^}:]+)(?::(-)?([^}]*))?\}/g, (match, varName, hasDefault, defaultValue) => {
+      const envValue = process.env[varName.trim()];
+      
+      if (envValue !== undefined) {
+        return envValue;
+      }
+      
+      if (hasDefault !== undefined) {
+        return defaultValue || '';
+      }
+      
+      // If no value and no default, return empty string or keep original
+      return '';
+    });
   }
 
   loadFromEnv(): GatewayConfig {

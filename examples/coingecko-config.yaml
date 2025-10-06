@@ -1,0 +1,42 @@
+name: "CoinGecko MCP Gateway"
+version: "1.0.0"
+description: "Gateway with CoinGecko MCP server - 0.01 USDC per call"
+
+# Payment Configuration
+payment:
+  enabled: true
+
+  # Ethereum address where payments will be sent (for receiving payments from users)
+  recipient: "0xc58bb1710E2DCA766b72E228E5a1C766f831CE58"
+
+  # Blockchain network (use "base" for mainnet, "base-sepolia" for testnet)
+  network: "base-sepolia"
+
+  # x402 facilitator URL (handles gasless transactions)
+  facilitator: "https://x402.org/facilitator"
+
+# MCP Servers Configuration
+servers:
+  # CoinGecko MCP Server via SSE (FREE API - no downstream payment required)
+  - name: "coingecko"
+    transport:
+      type: "sse"
+      sseUrl: "https://mcp.api.coingecko.com/sse"
+      postUrl: "https://mcp.api.coingecko.com/message"
+      headers:
+        "User-Agent": "MCP-Gateway/1.0"
+    namespace: "crypto"
+    enabled: true
+
+    # Charge agents $0.01 per call (gateway monetizes the free CoinGecko API)
+    defaultPricing:
+      x402: "$0.01"
+
+# Gateway Settings
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 10
+  healthCheckInterval: 60000

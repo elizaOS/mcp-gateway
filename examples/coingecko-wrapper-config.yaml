@@ -1,0 +1,29 @@
+name: "CoinGecko MCP Gateway (HTTP Wrapper Mode)"
+version: "1.0.0"
+description: "Gateway for HTTP wrapper - payments handled by wrapper layer"
+
+# Payment Configuration - DISABLED (HTTP wrapper handles it)
+payment:
+  enabled: false
+
+# MCP Servers Configuration
+servers:
+  # CoinGecko MCP Server via SSE (FREE API)
+  - name: "coingecko"
+    transport:
+      type: "sse"
+      sseUrl: "https://mcp.api.coingecko.com/sse"
+      postUrl: "https://mcp.api.coingecko.com/message"
+      headers:
+        "User-Agent": "MCP-Gateway/1.0"
+    namespace: "crypto"
+    enabled: true
+
+# Gateway Settings
+settings:
+  enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
+  logLevel: "info"
+  maxConcurrentConnections: 10
+  healthCheckInterval: 60000
