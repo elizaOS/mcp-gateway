@@ -10,8 +10,10 @@ A **production-ready MCP (Model Context Protocol) gateway** that aggregates mult
 - **🚀 Multi-Transport Support**: STDIO, HTTP, SSE, WebSocket - mix and match
 - **💪 Health Monitoring**: Automatic reconnection and health checks
 - **🛡️ Conflict Resolution**: Intelligent handling of duplicate tool names
+- **🧩 Resource & Prompt Resolution**: Optional conflict resolution for resources and prompts
 - **⚡ Dynamic Discovery**: Real-time capability updates and registry refresh
 - **📋 Configuration-Based**: YAML/JSON configuration for easy management
+- **🔐 Env Var Interpolation**: Use `${VAR}` and `${VAR:-default}` in config files
 
 ### Payment & Monetization
 - **💰 x402 Blockchain Payments**: Full EIP-712 signature validation with USDC
@@ -21,6 +23,8 @@ A **production-ready MCP (Model Context Protocol) gateway** that aggregates mult
 - **💸 Three Payment Modes**: Passthrough, Markup, Absorb
 - **📊 Flexible Pricing**: Per-tool, per-server, or global defaults
 - **🧪 Testnet Ready**: Base Sepolia support for safe testing
+- **↗️ Outbound x402 Payments**: Automatic downstream payments via x402-axios
+- **👛 Server Wallet Overrides**: Per-server `paymentWallet` setting for fine control
 
 ---
 
@@ -34,23 +38,24 @@ The gateway enables **monetization of MCP tools** using blockchain payments and 
 ┌──────────────────┐
 │   AI Agent       │  Anthropic Claude, OpenAI, etc.
 │  (with wallet)   │  Uses x402-fetch or x402-axios
+│  or API key      │  Sends Authorization/X-ELIZA-API-KEY headers
 └────────┬─────────┘
          │ MCP Protocol
-         │ Auto-pays on HTTP 402
+         │ Auto-pays on HTTP 402 or API key auth
          ↓
 ┌──────────────────┐
-│  HTTP Wrapper    │  Port 8000 (optional, for x402)
-│  402 Gateway     │  Returns HTTP 402 Payment Required
-└────────┬─────────┘  Verifies payments with facilitator
-         │ OR         Settles transactions on blockchain
-┌──────────────────┐
-│  STDIO Gateway   │  Direct MCP (no payment support)
+│  HTTP Wrapper    │  Port 8000 (optional, for payments)
+│  402 Gateway     │  • Returns HTTP 402 (x402 payments)
+└────────┬─────────┘  • Validates API keys (tiered pricing)
+         │ OR         • Verifies payments with facilitator
+┌──────────────────┐  • Settles blockchain transactions
+│  STDIO Gateway   │  Direct MCP (no payment/API key support)
 └────────┬─────────┘
          │
          │ MCP Protocol (authenticated)
          ↓
 ┌──────────────────┐
-│  Gateway Core    │  • Payment verification
+│  Gateway Core    │  • Payment verification (x402 + API keys)
 │                  │  • Tool routing
 │                  │  • Namespace management
 └────────┬─────────┘
@@ -271,7 +276,11 @@ servers:
 
 settings:
   enableToolConflictResolution: true
+  enableResourceConflictResolution: true
+  enablePromptConflictResolution: true
   logLevel: "info"
+  healthCheckInterval: 60000
+  maxConcurrentConnections: 10
 ```
 
 ### With Payment Gating (Monetization)
@@ -348,6 +357,8 @@ servers:
       url: "https://premium-api.com"
     paymentMode: "markup"
     markup: "20%"
+    # Optional: override wallet just for this server
+    paymentWallet: "0xServerSpecificPrivateKey"
     
   # Absorb mode - subscription model
   - name: "subscriber-api"
@@ -377,11 +388,32 @@ servers:
 - `markup`: Percentage (`20%`) or fixed amount (`$0.05`)
 - `defaultPricing`: Server-wide pricing defaults
 - `tools`: Per-tool configuration and pricing
+- `paymentWallet`: Private key override for outbound payments for this server
+- `timeout`, `retryAttempts`, `retryDelay`: Connection stability controls
 
 **Pricing Fields:**
 - `x402`: Price for blockchain payments (e.g., `$0.01`)
 - `apiKeyTiers`: Tier-specific pricing (`{"premium": "free", "basic": "$0.05"}`)
 - `free`: Mark tool as free (true/false)
+
+### Environment Variable Interpolation
+
+You can reference environment variables directly inside YAML/JSON configs:
+
+```yaml
+payment:
+  enabled: true
+  recipient: "${RECIPIENT_ADDRESS}"
+  network: "${NETWORK:-base-sepolia}"
+servers:
+  - name: "filesystem"
+    transport:
+      type: "stdio"
+      command: "${MCP_COMMAND:-npx}"
+      args: ["-y", "@modelcontextprotocol/server-filesystem", "${MCP_FS_ROOT:-/tmp}"]
+```
+
+Supported formats: `${VAR}` and `${VAR:-default}`.
 
 ## 🎯 Usage
 
@@ -442,9 +474,15 @@ const mcpClient = await createMCPClient({
 ### 3. Environment Variables
 
 - `MCP_GATEWAY_NAME` - Gateway name (default: "Eliza MCP Gateway")
+- `MCP_GATEWAY_VERSION` - Gateway version (default: "1.0.0")
+- `MCP_GATEWAY_DESCRIPTION` - Description shown to clients
 - `MCP_LOG_LEVEL` - Log level: error, warn, info, debug (default: info)
 - `MCP_SERVERS` - Semicolon-separated server specs
-- `MCP_ENABLE_TOOL_CONFLICT_RESOLUTION` - Enable conflict resolution (default: true)
+- `MCP_ENABLE_TOOL_CONFLICT_RESOLUTION` - Enable tool conflict resolution (default: true)
+- `MCP_ENABLE_RESOURCE_CONFLICT_RESOLUTION` - Enable resource conflict resolution (default: true)
+- `MCP_ENABLE_PROMPT_CONFLICT_RESOLUTION` - Enable prompt conflict resolution (default: true)
+- `MCP_MAX_CONCURRENT_CONNECTIONS` - Max concurrent server connections (default: 10)
+- `MCP_HEALTH_CHECK_INTERVAL` - Health check interval in ms (default: 60000)
 
 ## 🚀 Transport Support
 
@@ -496,6 +534,11 @@ See the `examples/` directory for complete, tested configurations:
 - [`examples/http-remote.yaml`](examples/http-remote.yaml) - Pure HTTP setup
 - [`examples/future-multi-transport.yaml`](examples/future-multi-transport.yaml) - All 4 transport types
 - [`examples/config.yaml`](examples/config.yaml) - Basic STDIO configuration
+- [`examples/paid-config.yaml`](examples/paid-config.yaml) - x402 + API key pricing
+- [`examples/passthrough-config.yaml`](examples/passthrough-config.yaml) - Pure passthrough routing
+- [`examples/hybrid-payment-config.yaml`](examples/hybrid-payment-config.yaml) - Mixed payment strategies
+- [`examples/absorb-config.yaml`](examples/absorb-config.yaml) - Subscription model (absorb)
+- [`examples/coingecko-wrapper-config.yaml`](examples/coingecko-wrapper-config.yaml) - HTTP wrapper for CoinGecko
 
 ## 🧪 Testing
 
@@ -516,6 +559,7 @@ bun run test:all
 bun run test:quick   # Quick smoke tests (~45s)
 bun run test         # Full E2E tests (~180s)
 bun run test:payment # Payment E2E tests (~31s)
+bun run test:passthrough # Passthrough/Markup/Absorb E2E tests
 ```
 
 ### Test Specific Configurations
@@ -569,7 +613,7 @@ bun run test:quick  # Fast, essential tests only
 bun run test:all    # Complete test suite
 ```
 
-See [TESTING.md](docs/TESTING.md) for detailed testing guide.
+See `tests/README.md` for the detailed testing guide.
 
 ## 📊 Example Output
 
@@ -636,6 +680,21 @@ Available tools with namespacing:
      Local         Remote        Streaming
 ```
 
+### Transport Wrapper Options
+
+- **HTTP Wrapper (`src/transports/http-wrapper.ts`)**: Spawns the stdio gateway per SSE session, handles HTTP/SSE endpoints, returns HTTP 402 for payments, and injects request headers into MCP messages for verification.
+- **SSE Server Transport (`src/transports/sse-server.ts`)**: Alternative built-in SSE/HTTP transport that can host the MCP server directly with CORS and header handling. Useful when you don’t want a subprocess per session.
+
+Both wrappers inject inbound HTTP headers into MCP request params as metadata so the gateway core can verify payments.
+
+### Header Propagation and Verification
+
+1. Client sends HTTP request with headers (e.g., `X-PAYMENT`, `X-ELIZA-API-KEY`).
+2. Wrapper injects headers into MCP params as `_meta.headers`.
+3. Gateway core retrieves headers from `request.params._meta.headers`.
+4. `PaymentMiddleware.verifyPayment()` authorizes via API key or x402, or returns requirements for a 402 challenge.
+5. On success, request routes to the correct downstream MCP server.
+
 ### Complete Payment Flow
 
 ```mermaid
@@ -670,6 +729,12 @@ sequenceDiagram
     Wrapper-->>Agent: Tool result (SSE stream)
 ```
 
+### Payment Modes at a Glance
+
+- **Passthrough**: Client pays upstream provider directly. Wrapper/gateway returns 402 and forwards/accepts x402 headers as needed; pricing is defined by the upstream. Use when aggregating already-paid MCP servers.
+- **Markup**: Client pays your gateway price; gateway calculates final price and pays the upstream via outbound wallet if needed. Use `payment.outboundWallet` (global) or `paymentWallet` (per server) to control the paying account.
+- **Absorb**: Client authenticates (e.g., API key tier free), and gateway pays all downstream costs using outbound wallet. Useful for subscriptions.
+
 ### Component Breakdown
 
 #### 1. **HTTP Wrapper** (`src/transports/http-wrapper.ts`)
@@ -693,17 +758,43 @@ sequenceDiagram
 - Payment settlement
 - Pricing calculation (markup, passthrough, absorb)
 
-#### 4. **Server Manager** (`src/core/server-manager.ts`)
+#### 4. **X402 Payment Client** (`src/core/x402-client.ts`)
+- Outbound payments to downstream HTTP/SSE services (markup/absorb)
+- Uses `x402-axios` for automatic 402 handling and signing
+- Supports per-server wallet override via `paymentWallet`
+
+#### 5. **Server Manager** (`src/core/server-manager.ts`)
 - Multi-transport support (STDIO, HTTP, SSE, WebSocket)
 - Health monitoring
 - Automatic reconnection
 - Connection pooling
 
-#### 5. **Gateway Registry** (`src/core/registry.ts`)
+#### 6. **Gateway Registry** (`src/core/registry.ts`)
 - Capability aggregation
 - Conflict resolution
 - Namespace application
 - Dynamic updates
+
+#### 7. **SSE Server Transport** (`src/transports/sse-server.ts`)
+- Hosts SSE and message endpoints directly (no subprocess)
+- Injects headers and supports CORS/keep-alive
+- Can be paired with `PaymentMiddleware` for inline checks
+
+### Conflict Resolution Rules
+
+- **Tools**: If `enableToolConflictResolution` and a duplicate name is detected, the registry appends the server ID (e.g., `name` → `name_serverA`). Namespacing (`namespace: "docs"`) prefixes names (e.g., `docs:get-library-docs`).
+- **Resources**: If `enableResourceConflictResolution`, URIs are namespaced (query param when URL-like; otherwise `namespace:uri`). Duplicates are suffixed with server ID.
+- **Prompts**: If `enablePromptConflictResolution`, duplicate prompt names are suffixed with server ID; namespacing applies as with tools.
+
+### Request Lifecycle (HTTP/SSE mode)
+
+1. Client opens `GET /sse` to receive streaming events and obtains a per-session `POST /message` endpoint.
+2. Client posts MCP requests to `/message` with payment or API key headers.
+3. Wrapper injects headers into `_meta.headers` and forwards to the gateway stdio server (or inline MCP server for SSE transport).
+4. Gateway resolves the target tool/resource/prompt via the registry.
+5. Payment middleware authorizes or responds with 402 + `X-Accept-Payment`.
+6. On success, the request is routed to the downstream MCP server; response streams back via SSE and HTTP.
+7. Optional: for markup/absorb flows, outbound payments are executed with the configured wallet.
 
 ---
 
@@ -815,11 +906,9 @@ payment:
 
 ## 📖 Documentation
 
-- **[Payment Implementation](docs/PAYMENT_IMPLEMENTATION.md)** - Payment system details
-- **[Passthrough Guide](docs/PASSTHROUGH_PAYMENT.md)** - Passthrough mode setup
-- **[Anthropic + x402 Integration](docs/ANTHROPIC_X402_INTEGRATION.md)** - Complete guide
-- **[Testing Guide](docs/TESTING.md)** - Test suite documentation
-- **[Feature Map](docs/FEATURE_MAP.md)** - All features and capabilities
+- **Examples**: See the `examples/` directory for ready-to-run configs
+- **Testing Guide**: See `tests/README.md`
+- **Agents**: See `example-agents/` for SSE client examples
 
 ---
 
