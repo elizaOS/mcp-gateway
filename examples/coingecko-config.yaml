@@ -10,10 +10,10 @@ payment:
   recipient: "0xc58bb1710E2DCA766b72E228E5a1C766f831CE58"
 
   # Blockchain network (use "base" for mainnet, "base-sepolia" for testnet)
-  network: "base-sepolia"
+  network: "base"
 
   # x402 facilitator URL (handles gasless transactions)
-  facilitator: "https://x402.org/facilitator"
+  facilitator: "https://facilitator.x402.rs"
 
 # MCP Servers Configuration
 servers:
