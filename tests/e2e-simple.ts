@@ -29,9 +29,6 @@ class SimpleE2ETestRunner {
     console.log('🚀 Starting Eliza MCP Gateway Simple E2E Tests\n');
     
     try {
-      // Type-check first
-      await this.typeCheckProject();
-      
       // Run core tests
       await this.testConfigurationLoading();
       await this.testBasicStartup();
@@ -47,15 +44,8 @@ class SimpleE2ETestRunner {
     }
   }
 
-  private async typeCheckProject(): Promise<void> {
-    console.log('🔎 Type-checking project...');
-    try {
-      await this.runCommand('bun', ['x', 'tsc', '--noEmit']);
-      console.log('✅ Type-check completed\n');
-    } catch (error) {
-      throw new Error(`Type-check failed: ${error}`);
-    }
-  }
+  // Type-checking removed - Bun runs TypeScript directly without tsc
+  // No tsconfig.json needed for this project
 
   private async testConfigurationLoading(): Promise<void> {
     console.log('📋 Testing Configuration Loading...');

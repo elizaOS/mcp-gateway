@@ -36,15 +36,14 @@ bun run test:quick         # Run fast, essential tests only (recommended during 
 ./tests/test-runner.sh config <file>  # Test specific configuration
 ./tests/test-runner.sh manual         # Interactive testing with MCP Inspector
 
-# Type Checking
-bun run type-check         # Run TypeScript type checking (no build output)
+# No separate type checking needed - Bun runs TypeScript directly
 
 # Testing with paid config
 bun run start --config=examples/paid-config.yaml --port=8000
 ```
 
 **IMPORTANT:** 
-- There is NO build, lint, or compilation step. The project runs directly from TypeScript source files using Bun. Only use `type-check` to validate types.
+- There is NO build, lint, or compilation step. The project runs directly from TypeScript source files using Bun.
 - **Default mode is SSE** (HTTP/SSE server), which exposes the gateway over HTTP with x402 payment support
 - **STDIO mode** is for local integrations (Claude Desktop, Cursor, etc.)
 

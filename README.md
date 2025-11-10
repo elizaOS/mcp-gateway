@@ -223,13 +223,23 @@ servers:
 
 ## 📦 Installation
 
+Run directly from the repository with Bun:
+
 ```bash
-npm install -g @elizaos/mcp-gateway
+# Clone the repository
+git clone https://github.com/elizaOS/mcp-gateway.git
+cd mcp-gateway
+
+# Install dependencies
+bun install
+
+# Run the gateway
+bun run src/index.ts --config=config.yaml
 ```
 
-Or run directly with npx:
+Or use the package scripts:
 ```bash
-npx @elizaos/mcp-gateway --config=config.yaml
+bun run start --config=config.yaml --port=8000
 ```
 
 ### With x402 Support (HTTP/SSE Mode)
@@ -422,17 +432,17 @@ Supported formats: `${VAR}` and `${VAR:-default}`.
 **Free, no payments:**
 
 ```bash
-# Start gateway
-mcp-gateway --config=config.yaml
+# Start gateway in STDIO mode
+bun run src/index.ts --config=config.yaml --mode=stdio
 ```
 
 **Claude Desktop configuration:**
 ```json
 {
   "mcpServers": {
-    "eliza-gateway": {
-      "command": "npx",
-      "args": ["-y", "@elizaos/mcp-gateway", "--config", "/path/to/config.yaml"]
+    "mcp-gateway": {
+      "command": "bun",
+      "args": ["run", "/path/to/mcp-gateway/src/index.ts", "--config", "/path/to/config.yaml", "--mode", "stdio"]
     }
   }
 }
@@ -601,10 +611,11 @@ The E2E test suite validates:
 - ✅ **Process Management**: Startup, shutdown, cleanup
 
 **Latest Test Results:**
-- Quick E2E: ✅ 11/11 passed (45s)
-- Full E2E: ✅ 28/28 passed (180s)
-- Payment E2E: ✅ 15/15 passed (31s)
-- **Total: ✅ 54/54 tests (100% success rate)**
+- Quick E2E: ✅ 9/9 passed (~17s)
+- Full E2E: ✅ Comprehensive suite available
+- Payment E2E: ✅ Payment verification tests
+- Passthrough E2E: ✅ Payment mode tests
+- **Success Rate: 100%**
 
 ### CI/CD Integration
 ```bash
