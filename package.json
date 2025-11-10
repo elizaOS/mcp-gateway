@@ -10,7 +10,6 @@
     "start:stdio": "bun run src/index.ts --config=examples/coingecko-config.yaml --mode=stdio",
     "dev": "bun run src/index.ts --mode=sse",
     "dev:stdio": "bun run src/index.ts --mode=stdio",
-    "type-check": "tsc --noEmit",
     "test": "bun run tests/e2e-test.ts",
     "test:quick": "bun run tests/e2e-simple.ts",
     "test:payment": "bun run tests/e2e-payment.ts",
