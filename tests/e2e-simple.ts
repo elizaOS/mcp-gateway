@@ -236,7 +236,7 @@ class SimpleE2ETestRunner {
 
   private async runGatewayWithTimeout(configPath?: string, timeoutMs: number = 5000): Promise<string> {
     return new Promise((resolve, reject) => {
-      const args = ['run', 'src/index.ts'];
+      const args = ['run', 'src/index.ts', '--mode=stdio'];
       if (configPath) {
         args.push(`--config=${configPath}`);
       }

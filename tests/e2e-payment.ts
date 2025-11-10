@@ -282,7 +282,7 @@ class PaymentE2ETestRunner {
 
   private async runGatewayWithTimeout(configPath: string, timeoutMs: number = 8000): Promise<string> {
     return new Promise((resolve, reject) => {
-      const args = ['run', 'src/index.ts', `--config=${configPath}`];
+      const args = ['run', 'src/index.ts', '--mode=stdio', `--config=${configPath}`];
 
       const gatewayProcess = spawn('bun', args, {
         stdio: ['pipe', 'pipe', 'pipe'],

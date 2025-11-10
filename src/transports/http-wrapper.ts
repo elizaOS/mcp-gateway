@@ -45,9 +45,10 @@ class HTTPGatewayWrapper {
 
     // Gateway subprocess command - use wrapper config (no payment checking in subprocess)
     // The HTTP layer handles all payment verification
+    // IMPORTANT: Subprocess must run in STDIO mode, not SSE mode
     const gatewayPath = new URL('../index.ts', import.meta.url).pathname;
     const wrapperConfigPath = configPath.replace('.yaml', '-wrapper.yaml').replace('.json', '-wrapper.json');
-    this.gatewayCommand = ['bun', 'run', gatewayPath, `--config=${wrapperConfigPath}`];
+    this.gatewayCommand = ['bun', 'run', gatewayPath, '--mode=stdio', `--config=${wrapperConfigPath}`];
     
     logger.info(`Gateway subprocess will use config: ${wrapperConfigPath}`);
   }

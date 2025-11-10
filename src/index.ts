@@ -3,6 +3,9 @@
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { GatewayServer } from './core/gateway.js';
 import { configManager } from './config/manager.js';
+import { HTTPGatewayWrapper } from './transports/http-wrapper.js';
+
+type TransportMode = 'stdio' | 'sse';
 
 /**
  * Main entry point for the MCP Gateway Server
@@ -10,15 +13,39 @@ import { configManager } from './config/manager.js';
 async function main(): Promise<void> {
   const args = process.argv.slice(2);
   
+  // Parse command line arguments
+  const configFile = args.find(arg => arg.startsWith('--config='))?.replace('--config=', '');
+  const modeArg = args.find(arg => arg.startsWith('--mode='))?.replace('--mode=', '') as TransportMode | undefined;
+  const portArg = args.find(arg => arg.startsWith('--port='))?.replace('--port=', '');
+  
+  // Default to SSE mode
+  const mode: TransportMode = modeArg || 'sse';
+  const port = portArg ? parseInt(portArg, 10) : 8000;
+  
   // Setup logging based on config (will be overridden by config later)
   const logLevel = process.env.MCP_LOG_LEVEL || 'info';
   const logger = createLogger(logLevel);
 
   try {
+    // SSE mode - start HTTP/SSE wrapper
+    if (mode === 'sse') {
+      if (!configFile) {
+        logger.error('SSE mode requires --config flag');
+        logger.info('Usage: bun run src/index.ts --config=path/to/config.yaml --mode=sse --port=8000');
+        process.exit(1);
+      }
+
+      logger.info(`Starting MCP Gateway in SSE mode on port ${port}`);
+      const wrapper = new HTTPGatewayWrapper(configFile, port, logger);
+      wrapper.start();
+      return;
+    }
+
+    // STDIO mode - run gateway directly
+    logger.info('Starting MCP Gateway in STDIO mode');
+
     // Load configuration
     let config;
-    const configFile = args.find(arg => arg.startsWith('--config='))?.replace('--config=', '');
-    
     if (configFile) {
       logger.info(`Loading configuration from file: ${configFile}`);
       config = configManager.loadFromFile(configFile);
@@ -129,7 +156,14 @@ USAGE:
 
 OPTIONS:
   --config=<path>    Path to configuration file (JSON or YAML)
+  --mode=<mode>      Transport mode: sse (default) or stdio
+  --port=<port>      Port for SSE mode (default: 8000)
   --help            Show this help message
+
+TRANSPORT MODES:
+  sse               HTTP/SSE server mode - exposes gateway over HTTP with x402 payment support
+                    Endpoints: GET /sse (Server-Sent Events), POST /message
+  stdio             Standard I/O mode - communicates via stdin/stdout (used by Claude Desktop)
 
 ENVIRONMENT VARIABLES:
   MCP_GATEWAY_NAME                       Name of the gateway (default: "MCP Gateway")
@@ -144,11 +178,17 @@ ENVIRONMENT VARIABLES:
   MCP_HEALTH_CHECK_INTERVAL             Health check interval in ms (default: 60000)
 
 EXAMPLES:
-  # Run with configuration file
-  mcp-gateway --config=config.yaml
+  # Run in SSE mode (default) - HTTP server with x402 payments
+  mcp-gateway --config=config.yaml --port=8000
+  
+  # Explicitly specify SSE mode
+  mcp-gateway --config=config.yaml --mode=sse --port=8000
 
-  # Run with environment variables
-  MCP_SERVERS="weather:node:weather.js;filesystem:python:fs_server.py" mcp-gateway
+  # Run in STDIO mode (for Claude Desktop integration)
+  mcp-gateway --config=config.yaml --mode=stdio
+
+  # Run with environment variables (STDIO mode)
+  MCP_SERVERS="weather:node:weather.js;filesystem:python:fs_server.py" mcp-gateway --mode=stdio
 
 For more information, visit: https://github.com/studio/mcp-gateway
 `);

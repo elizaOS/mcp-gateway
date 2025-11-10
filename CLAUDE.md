@@ -16,9 +16,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## COMMON COMMANDS
 
 ```bash
-# Development
-bun run start              # Start the gateway server
-bun run dev                # Start in development mode
+# Development - SSE Mode (default, exposes HTTP/SSE endpoints)
+bun run start --config=examples/config.yaml              # Start gateway in SSE mode on port 8000
+bun run start --config=examples/config.yaml --port=3000  # SSE mode on custom port
+bun run dev --config=examples/config.yaml                # Development SSE mode
+
+# Development - STDIO Mode (for Claude Desktop integration)
+bun run start:stdio --config=examples/config.yaml        # Start gateway in STDIO mode
+bun run dev:stdio --config=examples/config.yaml          # Development STDIO mode
+
+# Direct invocation with mode flags
+bun run src/index.ts --config=config.yaml --mode=sse --port=8000   # SSE mode (explicit)
+bun run src/index.ts --config=config.yaml --mode=stdio             # STDIO mode (explicit)
 
 # Testing
 bun run test               # Run comprehensive E2E tests
@@ -30,14 +39,14 @@ bun run test:quick         # Run fast, essential tests only (recommended during 
 # Type Checking
 bun run type-check         # Run TypeScript type checking (no build output)
 
-# Testing with specific configs
-npx @modelcontextprotocol/inspector node build/index.js --config=examples/config.yaml
-
 # Testing with paid config
-bun run start --config=examples/paid-config.yaml
+bun run start --config=examples/paid-config.yaml --port=8000
 ```
 
-**IMPORTANT:** There is NO build, lint, or compilation step. The project runs directly from TypeScript source files using Bun. Only use `type-check` to validate types.
+**IMPORTANT:** 
+- There is NO build, lint, or compilation step. The project runs directly from TypeScript source files using Bun. Only use `type-check` to validate types.
+- **Default mode is SSE** (HTTP/SSE server), which exposes the gateway over HTTP with x402 payment support
+- **STDIO mode** is for local integrations (Claude Desktop, Cursor, etc.)
 
 ---
 
@@ -302,14 +311,29 @@ servers:
 ## IMPORTANT DEVELOPMENT NOTES
 
 ### Entry Point
-- `src/index.ts` is the CLI entry point
-- Accepts `--config=<path>` flag for configuration file
-- Falls back to environment variables if no config file provided
-- Creates STDIO transport and connects gateway server
+- `src/index.ts` is the CLI entry point with dual-mode support
+- **SSE mode** (default): Runs HTTP/SSE wrapper for network access with x402 payment support
+- **STDIO mode**: Direct stdin/stdout for local clients (Claude Desktop, Cursor, etc.)
+- Accepts flags:
+  - `--config=<path>` - Configuration file path (required for SSE mode)
+  - `--mode=<sse|stdio>` - Transport mode (default: sse)
+  - `--port=<number>` - Port for SSE mode (default: 8000)
+- Falls back to environment variables if no config file provided (STDIO mode only)
 
-### Transport Priority
-- STDIO is the default and most common transport (local MCP servers)
-- HTTP/SSE/WebSocket are for remote servers (less common)
+### Transport Modes
+- **SSE** (default): HTTP/SSE server mode - exposes gateway over HTTP with x402 payment support
+  - Used for: Network access, agent integrations, payment-gated APIs
+  - Endpoints: `GET /sse` (Server-Sent Events), `POST /message`
+- **STDIO**: Standard input/output mode - direct communication via stdin/stdout
+  - Used for: Claude Desktop, Cursor, local MCP clients, testing
+  - Required for all test suites
+
+### Downstream Server Transports
+Gateway can connect to downstream servers using:
+- **STDIO** - Most common (local MCP servers)
+- **HTTP/HTTPS** - Remote MCP servers
+- **SSE** - Streaming connections
+- **WebSocket** - Bidirectional real-time
 - Legacy format auto-converts to STDIO transport
 
 ### Logging System
