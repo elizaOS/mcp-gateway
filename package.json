@@ -5,6 +5,7 @@
   "type": "module",
   "main": "build/index.js",
   "scripts": {
+    "build": "bun build src/index.ts --outdir build --target node --format esm --sourcemap=external",
     "start": "bun run src/index.ts --mode=sse",
     "start:stdio": "bun run src/index.ts --mode=stdio",
     "dev": "bun run src/index.ts --mode=sse",
