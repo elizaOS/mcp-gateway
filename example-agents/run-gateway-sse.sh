@@ -19,6 +19,8 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 cd "$(dirname "$0")/.."
 
-bun run src/transports/http-wrapper.ts \
+# SSE is now the default mode, so we can use the main entry point
+bun run src/index.ts \
     --config=$CONFIG_PATH \
+    --mode=sse \
     --port=$PORT

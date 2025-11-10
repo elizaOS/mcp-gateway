@@ -246,6 +246,7 @@ class PassthroughE2ETestRunner {
       const gatewayProcess: ChildProcess = spawn('bun', [
         'run',
         'src/index.ts',
+        '--mode=stdio',
         `--config=${configPath}`
       ], {
         cwd: process.cwd(),

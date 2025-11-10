@@ -90,7 +90,7 @@ test_config() {
     echo "Press Ctrl+C to stop..."
     echo ""
     
-    bun run src/index.ts --config="tests/configs/$config_file"
+    bun run src/index.ts --mode=stdio --config="tests/configs/$config_file"
 }
 
 # Function to run manual testing with inspector
@@ -110,7 +110,7 @@ run_manual_test() {
     echo "This will open the MCP Inspector for interactive testing..."
     echo ""
     
-    bun x @modelcontextprotocol/inspector bun run src/index.ts --config="tests/configs/$config_file"
+    bun x @modelcontextprotocol/inspector bun run src/index.ts --mode=stdio --config="tests/configs/$config_file"
 }
 
 # Function to show usage

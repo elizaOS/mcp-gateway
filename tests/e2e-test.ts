@@ -301,7 +301,7 @@ class E2ETestRunner {
   }
 
   private async startGateway(configPath?: string): Promise<void> {
-    const args = ['run', 'src/index.ts'];
+    const args = ['run', 'src/index.ts', '--mode=stdio'];
     if (configPath) {
       args.push(`--config=${configPath}`);
     }
