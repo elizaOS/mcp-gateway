@@ -55,6 +55,7 @@ class HTTPGatewayWrapper {
     this.gatewayCommand = ['bun', currentScript, '--mode=stdio', `--config=${wrapperConfigPath}`];
     
     logger.info(`Gateway subprocess will use config: ${wrapperConfigPath}`);
+    logger.info(`Gateway subprocess command: ${this.gatewayCommand.join(' ')}`);
   }
 
   start(): void {

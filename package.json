@@ -6,8 +6,8 @@
   "main": "build/index.js",
   "scripts": {
     "build": "bun build src/index.ts --outdir build --target node --format esm --sourcemap=external",
-    "start": "bun run build/index.js --config=examples/coingecko-config.yaml --mode=sse --port=8000",
-    "start:stdio": "bun run build/index.js --config=examples/coingecko-config.yaml --mode=stdio",
+    "start": "bun run src/index.ts --config=examples/coingecko-config.yaml --mode=sse --port=8000",
+    "start:stdio": "bun run src/index.ts --config=examples/coingecko-config.yaml --mode=stdio",
     "dev": "bun run src/index.ts --mode=sse",
     "dev:stdio": "bun run src/index.ts --mode=stdio",
     "type-check": "tsc --noEmit",
