@@ -5,7 +5,7 @@ description: "Gateway pays all downstream costs using its own wallet (subscripti
 # Payment configuration
 payment:
   enabled: true
-  recipient: "0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb"
+  recipient: "0xe42b492846a2a220fb607745a63af7d91a035d12"
   network: "base-sepolia"
 
   # Gateway's wallet for paying downstream APIs
